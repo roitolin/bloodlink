@@ -54,7 +54,7 @@ export default function MainNavigator() {
         name="Home"
         component={DashboardScreen}
         options={{
-          title: "Dashboard",
+          title: "Dashboards",
           headerRight: () => <HeaderLogoutButton />,
         }}
       />
