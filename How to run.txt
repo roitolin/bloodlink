@@ -1,0 +1,11 @@
+c:\GROUP2_PROJECT\bloodlink
+Mobile
+1.cd bloodlink
+2.npx expo start
+
+c:\GROUP2_PROJECT\bloodlink\bloodlink_web
+Web (Landing)
+1.cd bloodlink
+2.cd bloodlink_web
+3.npm install
+4.npm run dev

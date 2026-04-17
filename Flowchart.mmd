@@ -1,0 +1,94 @@
+flowchart TD
+    %% =======================
+    %% BLOODLINK APP FLOW
+    %% =======================
+
+    A([App Start]) --> B{User Logged In?}
+
+    %% Auth branch
+    B -- No --> C[Authentication Stack]
+    C --> D[Login Screen]
+    C --> E[Register Screen]
+    D --> F[Go to Home]
+    E --> F
+    F --> B
+
+    %% Logged-in branch
+    B -- Yes --> G{Role?}
+    G -- Admin --> H1
+    G -- User --> I1
+
+    %% -----------------------
+    %% Admin Flow
+    %% -----------------------
+    subgraph H[Admin Panel]
+        direction TB
+        H1[Admin Dashboard]
+        H2[Manage Users]
+        H3[View All Requests]
+        H4[Analytics]
+        H1 --> H2
+        H1 --> H3
+        H1 --> H4
+    end
+
+    %% -----------------------
+    %% User Flow
+    %% -----------------------
+    subgraph I[User Tabs]
+        direction TB
+        I1[Home Tab]
+        I2[Search Donors Tab]
+        I3[My Requests Tab]
+        I4[Profile Tab]
+        J[Dashboard Screen]
+
+        I1 --> J
+        J -->|"Button: Search"| I2
+        J -->|"Button: Request"| I3
+        J -->|"Button: Profile"| I4
+
+        %% Search Donors path
+        I2 --> K[Search Donors]
+        K --> L[Filter by Blood Type / City]
+        L --> M[Display Donors]
+        M --> N[Contact Donor]
+
+        %% Requests path
+        subgraph R[Requests Stack]
+            direction TB
+            R1[My Requests List]
+            R2[Create Request Form]
+            R3[Save to Firestore]
+            R1 -->|"Button: Create New"| R2
+            R2 --> R3
+            R3 --> R1
+        end
+        I3 --> R1
+
+        %% Profile path
+        I4 --> P[Profile Screen]
+        P --> Q[Edit Donor Info]
+        Q --> S[Save to Firestore]
+    end
+
+    %% Logout and return to auth check
+    J --> T[Logout Button]
+    P --> T
+    H1 --> T
+    T --> B
+
+    %% -----------------------
+    %% Styling
+    %% -----------------------
+    classDef decision fill:#e58de3,stroke:#2f2f2f,stroke-width:2px,color:#1f1f1f;
+    classDef screen fill:#dfe4ff,stroke:#7b61ff,stroke-width:1.5px,color:#1f1f1f;
+    classDef action fill:#f6d7d7,stroke:#ff3b30,stroke-width:1.5px,color:#1f1f1f;
+    classDef store fill:#f6f1c6,stroke:#b59b00,stroke-width:1.5px,color:#1f1f1f;
+    classDef start fill:#e7ecff,stroke:#7b61ff,stroke-width:1.5px,color:#1f1f1f;
+
+    class A start;
+    class B,G decision;
+    class C,D,E,F,H1,H2,H3,H4,I1,I2,I3,I4,J,K,L,M,N,R1,R2,P,Q screen;
+    class R3,S store;
+    class T action;

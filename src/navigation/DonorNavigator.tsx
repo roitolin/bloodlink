@@ -1,13 +1,21 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Button } from "react-native";
+import { Button, Alert } from "react-native";
 import { useAuth } from "../context/AuthContext";
-import DonorDashboard from "../screens/DonorDashboard";
-import DonorProfileScreen from "../screens/DonorProfileScreen";
+import { DonorDashboard, DonorProfileScreen } from "@/pages/user";
+import { confirmLogout } from "../utils/logoutConfirmation";
 
 const Stack = createNativeStackNavigator();
 
 export default function DonorNavigator() {
   const { logout } = useAuth();
+  const handleLogout = () => {
+    confirmLogout({
+      logout,
+      onError: (error: any) => {
+        Alert.alert("Logout Failed", error?.message || "Failed to logout.");
+      },
+    });
+  };
 
   return (
     <Stack.Navigator>
@@ -16,7 +24,7 @@ export default function DonorNavigator() {
         component={DonorDashboard}
         options={{
           title: "Dashboard",
-          headerRight: () => <Button title="Logout" onPress={logout} color="red" />,
+          headerRight: () => <Button title="Logout" onPress={handleLogout} color="red" />,
         }}
       />
       <Stack.Screen
@@ -24,7 +32,7 @@ export default function DonorNavigator() {
         component={DonorProfileScreen}
         options={{
           title: "My Profile",
-          headerRight: () => <Button title="Logout" onPress={logout} color="red" />,
+          headerRight: () => <Button title="Logout" onPress={handleLogout} color="red" />,
         }}
       />
     </Stack.Navigator>

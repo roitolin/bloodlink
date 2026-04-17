@@ -1,0 +1,120 @@
+[debug] [2026-04-01T09:24:05.176Z] ----------------------------------------------------------------------
+[debug] [2026-04-01T09:24:05.221Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\tolin\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules
+[debug] [2026-04-01T09:24:05.223Z] CLI Version:   15.12.0
+[debug] [2026-04-01T09:24:05.223Z] Platform:      win32
+[debug] [2026-04-01T09:24:05.224Z] Node Version:  v24.13.1
+[debug] [2026-04-01T09:24:05.224Z] Time:          Wed Apr 01 2026 18:24:05 GMT+0900 (Japan Standard Time)
+[debug] [2026-04-01T09:24:05.224Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-01T09:24:05.231Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-04-01T09:24:18.120Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-01T09:24:18.123Z] > authorizing via signed-in user (tolinroi0@gmail.com)
+[debug] [2026-04-01T09:24:18.123Z] [iam] checking project bloodlink-7b8eb for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-04-01T09:24:18.127Z] Checked if tokens are valid: false, expires at: 1774791080343
+[debug] [2026-04-01T09:24:18.129Z] Checked if tokens are valid: false, expires at: 1774791080343
+[debug] [2026-04-01T09:24:18.131Z] > refreshing access token with scopes: []
+[debug] [2026-04-01T09:24:18.138Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-04-01T09:24:18.139Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-01T09:24:18.476Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-04-01T09:24:18.477Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-01T09:24:18.526Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/bloodlink-7b8eb:testIamPermissions [none]
+[debug] [2026-04-01T09:24:18.526Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/bloodlink-7b8eb:testIamPermissions  x-goog-user-project=bloodlink-7b8eb
+[debug] [2026-04-01T09:24:18.527Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/bloodlink-7b8eb:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-04-01T09:24:18.826Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-04-01T09:24:18.827Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-04-01T09:24:20.215Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/bloodlink-7b8eb:testIamPermissions 403
+[debug] [2026-04-01T09:24:20.216Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/bloodlink-7b8eb:testIamPermissions {"error":{"code":403,"message":"Caller does not have required permission to use project bloodlink-7b8eb. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=bloodlink-7b8eb and then retry. Propagation of the new permission may take a few minutes.","status":"PERMISSION_DENIED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"USER_PROJECT_DENIED","domain":"googleapis.com","metadata":{"consumer":"projects/bloodlink-7b8eb","consoleUrl":"https://console.developers.google.com/iam-admin/iam?project=bloodlink-7b8eb","containerInfo":"bloodlink-7b8eb","service":"cloudresourcemanager.googleapis.com"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"Caller does not have required permission to use project bloodlink-7b8eb. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=bloodlink-7b8eb and then retry. Propagation of the new permission may take a few minutes."},{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Google developer console IAM admin","url":"https://console.developers.google.com/iam-admin/iam?project=bloodlink-7b8eb"}]}]}}
+[debug] [2026-04-01T09:24:20.219Z] [iam] error while checking permissions, command may fail: Request to https://cloudresourcemanager.googleapis.com/v1/projects/bloodlink-7b8eb:testIamPermissions had HTTP Error: 403, Caller does not have required permission to use project bloodlink-7b8eb. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=bloodlink-7b8eb and then retry. Propagation of the new permission may take a few minutes.
+[info] 
+[info] === Deploying to 'bloodlink-7b8eb'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-04-01T09:24:20.229Z] Checked if tokens are valid: true, expires at: 1775039057478
+[debug] [2026-04-01T09:24:20.230Z] Checked if tokens are valid: true, expires at: 1775039057478
+[debug] [2026-04-01T09:24:20.230Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/bloodlink-7b8eb/databases/(default) [none]
+[debug] [2026-04-01T09:24:20.944Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/bloodlink-7b8eb/databases/(default) 403
+[debug] [2026-04-01T09:24:20.944Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/bloodlink-7b8eb/databases/(default) {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[info] i  firestore: reading indexes from firestore.indexes.json... 
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-04-01T09:24:20.951Z] Checked if tokens are valid: true, expires at: 1775039057478
+[debug] [2026-04-01T09:24:20.952Z] Checked if tokens are valid: true, expires at: 1775039057478
+[debug] [2026-04-01T09:24:20.952Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/bloodlink-7b8eb:test [none]
+[debug] [2026-04-01T09:24:20.952Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/bloodlink-7b8eb:test [omitted]
+[debug] [2026-04-01T09:24:21.801Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/bloodlink-7b8eb:test 403
+[debug] [2026-04-01T09:24:21.802Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/bloodlink-7b8eb:test {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[error] 
+[error] Error: Request to https://firebaserules.googleapis.com/v1/projects/bloodlink-7b8eb:test had HTTP Error: 403, The caller does not have permission
+[debug] [2026-04-01T09:24:22.134Z] Error Context: {
+  "body": {
+    "error": {
+      "code": 403,
+      "message": "The caller does not have permission",
+      "status": "PERMISSION_DENIED"
+    }
+  },
+  "response": {
+    "statusCode": 403
+  }
+}
+[debug] [2026-04-08T13:00:51.636Z] ----------------------------------------------------------------------
+[debug] [2026-04-08T13:00:51.670Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\tolin\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules
+[debug] [2026-04-08T13:00:51.671Z] CLI Version:   15.12.0
+[debug] [2026-04-08T13:00:51.672Z] Platform:      win32
+[debug] [2026-04-08T13:00:51.673Z] Node Version:  v24.13.1
+[debug] [2026-04-08T13:00:51.674Z] Time:          Wed Apr 08 2026 22:00:51 GMT+0900 (Japan Standard Time)
+[debug] [2026-04-08T13:00:51.674Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-08T13:00:51.682Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-04-08T13:01:02.096Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-08T13:01:02.099Z] > authorizing via signed-in user (tolinroi0@gmail.com)
+[debug] [2026-04-08T13:01:02.099Z] [iam] checking project bloodlink-7b8eb for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-04-08T13:01:02.104Z] Checked if tokens are valid: false, expires at: 1775039057478
+[debug] [2026-04-08T13:01:02.105Z] Checked if tokens are valid: false, expires at: 1775039057478
+[debug] [2026-04-08T13:01:02.106Z] > refreshing access token with scopes: []
+[debug] [2026-04-08T13:01:02.113Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-04-08T13:01:02.114Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-08T13:01:02.554Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-04-08T13:01:02.555Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-08T13:01:02.591Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/bloodlink-7b8eb:testIamPermissions [none]
+[debug] [2026-04-08T13:01:02.592Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/bloodlink-7b8eb:testIamPermissions  x-goog-user-project=bloodlink-7b8eb
+[debug] [2026-04-08T13:01:02.593Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/bloodlink-7b8eb:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-04-08T13:01:02.811Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-04-08T13:01:02.812Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-04-08T13:01:03.828Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/bloodlink-7b8eb:testIamPermissions 403
+[debug] [2026-04-08T13:01:03.828Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/bloodlink-7b8eb:testIamPermissions {"error":{"code":403,"message":"Caller does not have required permission to use project bloodlink-7b8eb. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=bloodlink-7b8eb and then retry. Propagation of the new permission may take a few minutes.","status":"PERMISSION_DENIED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"USER_PROJECT_DENIED","domain":"googleapis.com","metadata":{"service":"cloudresourcemanager.googleapis.com","consoleUrl":"https://console.developers.google.com/iam-admin/iam?project=bloodlink-7b8eb","containerInfo":"bloodlink-7b8eb","consumer":"projects/bloodlink-7b8eb"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"Caller does not have required permission to use project bloodlink-7b8eb. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=bloodlink-7b8eb and then retry. Propagation of the new permission may take a few minutes."},{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Google developer console IAM admin","url":"https://console.developers.google.com/iam-admin/iam?project=bloodlink-7b8eb"}]}]}}
+[debug] [2026-04-08T13:01:03.831Z] [iam] error while checking permissions, command may fail: Request to https://cloudresourcemanager.googleapis.com/v1/projects/bloodlink-7b8eb:testIamPermissions had HTTP Error: 403, Caller does not have required permission to use project bloodlink-7b8eb. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=bloodlink-7b8eb and then retry. Propagation of the new permission may take a few minutes.
+[info] 
+[info] === Deploying to 'bloodlink-7b8eb'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-04-08T13:01:03.844Z] Checked if tokens are valid: true, expires at: 1775656861555
+[debug] [2026-04-08T13:01:03.844Z] Checked if tokens are valid: true, expires at: 1775656861555
+[debug] [2026-04-08T13:01:03.845Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/bloodlink-7b8eb/databases/(default) [none]
+[debug] [2026-04-08T13:01:04.390Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/bloodlink-7b8eb/databases/(default) 403
+[debug] [2026-04-08T13:01:04.391Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/bloodlink-7b8eb/databases/(default) {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[info] i  firestore: reading indexes from firestore.indexes.json... 
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-04-08T13:01:04.399Z] Checked if tokens are valid: true, expires at: 1775656861555
+[debug] [2026-04-08T13:01:04.399Z] Checked if tokens are valid: true, expires at: 1775656861555
+[debug] [2026-04-08T13:01:04.400Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/bloodlink-7b8eb:test [none]
+[debug] [2026-04-08T13:01:04.400Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/bloodlink-7b8eb:test [omitted]
+[debug] [2026-04-08T13:01:06.299Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/bloodlink-7b8eb:test 403
+[debug] [2026-04-08T13:01:06.299Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/bloodlink-7b8eb:test {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[error] 
+[error] Error: Request to https://firebaserules.googleapis.com/v1/projects/bloodlink-7b8eb:test had HTTP Error: 403, The caller does not have permission
+[debug] [2026-04-08T13:01:06.606Z] Error Context: {
+  "body": {
+    "error": {
+      "code": 403,
+      "message": "The caller does not have permission",
+      "status": "PERMISSION_DENIED"
+    }
+  },
+  "response": {
+    "statusCode": 403
+  }
+}

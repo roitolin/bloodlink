@@ -1,70 +1,87 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { TouchableOpacity, Text, Alert } from "react-native";
-import { useAuth } from "../context/AuthContext";
-import DashboardScreen from "../screens/DashboardScreen";
-import SearchDonorsScreen from "../screens/SearchDonorsScreen";
+import { View, Text } from "react-native";
+import FeedStackNavigator from "./FeedStackNavigator";
+import SearchStackNavigator from "./SearchStackNavigator";
 import RequestsStackNavigator from "./RequestsStackNavigator";
-import ProfileScreen from "../screens/ProfileScreen";
+import ProfileStackNavigator from "./ProfileStackNavigator";
+import { NotificationsScreen } from "@/pages/shared";
+import { useUnreadCount } from "@/hooks";
 
-const Tab = createBottomTabNavigator();
+const BottomTab = createBottomTabNavigator();
 
-// Header logout button component
-function HeaderLogoutButton() {
-  const { logout } = useAuth();
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error: any) {
-      Alert.alert("Logout Failed", error.message);
-    }
-  };
+function TabBarIcon({ name, focused, color, size, badgeCount }: any) {
   return (
-    <TouchableOpacity onPress={handleLogout} style={{ marginRight: 15 }}>
-      <Text style={{ color: "red", fontSize: 16 }}>Logout</Text>
-    </TouchableOpacity>
+    <View>
+      <Ionicons name={focused ? name : `${name}-outline`} size={size} color={color} />
+      {badgeCount > 0 && (
+        <View
+          style={{
+            position: "absolute",
+            right: -6,
+            top: -3,
+            backgroundColor: "red",
+            borderRadius: 10,
+            width: 16,
+            height: 16,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ color: "white", fontSize: 10, fontWeight: "bold" }}>
+            {badgeCount > 9 ? "9+" : badgeCount}
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
 
 export default function MainNavigator() {
+  const unreadCount = useUnreadCount();
+
+  const tabs = [
+    { name: "Feed", component: FeedStackNavigator, icon: "home", options: { title: "Feed", headerShown: false } },
+    { name: "Search", component: SearchStackNavigator, icon: "search", options: { title: "Find Donors", headerShown: false } },
+    { name: "Requests", component: RequestsStackNavigator, icon: "list", options: { title: "My Requests", headerShown: false } },
+    { name: "Notifications", component: NotificationsScreen, icon: "notifications", badge: unreadCount, options: { title: "Notifications" } },
+    { name: "Profile", component: ProfileStackNavigator, icon: "person", options: { title: "Profile", headerShown: false } },
+  ];
+
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap;
-          if (route.name === "Home") {
-            iconName = focused ? "home" : "home-outline";
-          } else if (route.name === "Search") {
-            iconName = focused ? "search" : "search-outline";
-          } else if (route.name === "Requests") {
-            iconName = focused ? "list" : "list-outline";
-          } else if (route.name === "Profile") {
-            iconName = focused ? "person" : "person-outline";
-          } else {
-            iconName = "help-outline";
-          }
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: "red",
-        tabBarInactiveTintColor: "gray",
-        headerShown: true,
-      })}
+    <BottomTab.Navigator
+      screenOptions={({ route }) => {
+        const tab = tabs.find((t) => t.name === route.name);
+        const badgeCount = tab?.badge || 0;
+        return {
+          tabBarPosition: "bottom",
+          tabBarVariant: "uikit",
+          tabBarShowLabel: true,
+          tabBarLabelPosition: "below-icon",
+          tabBarIcon: ({ focused, color, size }) => (
+            <TabBarIcon
+              name={tab?.icon || "help"}
+              focused={focused}
+              color={color}
+              size={size}
+              badgeCount={badgeCount}
+            />
+          ),
+          tabBarHideOnKeyboard: true,
+          tabBarActiveTintColor: "#d32f2f",
+          tabBarInactiveTintColor: "#667085",
+          headerShown: true,
+        };
+      }}
     >
-      <Tab.Screen
-        name="Home"
-        component={DashboardScreen}
-        options={{
-          title: "Dashboards",
-          headerRight: () => <HeaderLogoutButton />,
-        }}
-      />
-      <Tab.Screen name="Search" component={SearchDonorsScreen} options={{ title: "Find Donors" }} />
-      <Tab.Screen
-        name="Requests"
-        component={RequestsStackNavigator}
-        options={{ title: "My Requests", headerShown: false }}
-      />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: "Profile" }} />
-    </Tab.Navigator>
+      {tabs.map((tab) => (
+        <BottomTab.Screen
+          key={tab.name}
+          name={tab.name}
+          component={tab.component}
+          options={tab.options}
+        />
+      ))}
+    </BottomTab.Navigator>
   );
 }
