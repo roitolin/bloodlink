@@ -68,6 +68,7 @@ function LoginPage() {
   const infoMessage = useMemo(() => {
     const search = new URLSearchParams(location.search)
     if (search.get('registered') === '1') return 'Registration successful. Check your email to verify your account.'
+    if (search.get('verifyExpired') === '1') return 'Verification session expired after 30 minutes. Please log in again.'
     return ''
   }, [location.search])
   const redirectAfterLogin = useMemo(() => {
@@ -143,6 +144,12 @@ function LoginPage() {
           reason: banReason,
           banEndsLabel: hasValidBanEnd ? bannedUntil.toLocaleString() : 'No end date (permanent)',
         })
+        return
+      }
+
+      if (!credential.user.emailVerified) {
+        const verifyTarget = redirectAfterLogin ? `/verify-email?next=${encodeURIComponent(redirectAfterLogin)}` : '/verify-email'
+        navigate(verifyTarget)
         return
       }
 

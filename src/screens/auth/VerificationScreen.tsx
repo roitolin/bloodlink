@@ -7,7 +7,7 @@ import { useResponsive } from "../../utils/responsive";
 export default function VerificationScreen() {
   const { user, logout } = useAuth();
   const [resending, setResending] = useState(false);
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(30 * 60);
   const { isDesktop } = useResponsive();
   const mounted = useRef(true);
 
@@ -37,6 +37,10 @@ export default function VerificationScreen() {
     }, 1000);
     return () => clearInterval(timer);
   }, [handleAutoLogout]);
+
+  const minutes = Math.floor(countdown / 60);
+  const seconds = countdown % 60;
+  const timeLabel = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 
   const resendVerification = async () => {
     if (!user) return;
@@ -68,7 +72,7 @@ export default function VerificationScreen() {
           <Text style={styles.email}>{user?.email}</Text>
         </Text>
         <Text style={styles.countdown}>
-          Redirecting to login in {countdown} seconds...
+          Session expires in {timeLabel}. You will be logged out if still unverified.
         </Text>
         <Button
           title={resending ? "Sending..." : "Resend Verification Email"}

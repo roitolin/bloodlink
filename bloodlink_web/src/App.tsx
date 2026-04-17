@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { LandingPage, LoginPage, RegisterPage } from '@/pages'
+import { LandingPage, LoginPage, RegisterPage, VerifyEmailPage } from '@/pages'
 import {
   AboutUsPage,
   ContactSupportPage,
@@ -12,7 +12,6 @@ import {
   MyRequestsPage,
   NotificationsPage,
   ProfilePage,
-  ReportCenterPage,
   RequestDetailPage,
   SearchDonorsPage,
   UserLayout,
@@ -40,6 +39,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/app" element={<UserLayout />}>
@@ -55,7 +55,6 @@ function App() {
             <Route path="contact" element={<ContactSupportPage />} />
             <Route path="feedback" element={<FeedbackPage />} />
             <Route path="donation-history" element={<DonationHistoryPage />} />
-            <Route path="report-center" element={<ReportCenterPage />} />
           </Route>
         </Route>
 

@@ -311,6 +311,14 @@ export default function AdminAllDonorsScreen() {
               )}
             </View>
             <View style={styles.actions}>
+              <IconButton
+                icon="eye"
+                size={24}
+                onPress={async () => {
+                  await markDonorPendingNotificationsAsRead(item.id);
+                  navigation.navigate("AdminUserDetail", { userId: item.id });
+                }}
+              />
               {isPending ? (
                 <>
                   <IconButton
@@ -334,16 +342,7 @@ export default function AdminAllDonorsScreen() {
                     iconColor="red"
                   />
                 </>
-              ) : (
-                <IconButton
-                  icon="eye"
-                  size={24}
-                  onPress={async () => {
-                    await markDonorPendingNotificationsAsRead(item.id);
-                    navigation.navigate("AdminUserDetail", { userId: item.id });
-                  }}
-                />
-              )}
+              ) : null}
               <IconButton
                 icon="delete"
                 size={24}

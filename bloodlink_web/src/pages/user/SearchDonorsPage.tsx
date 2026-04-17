@@ -384,12 +384,13 @@ function SearchDonorsPage() {
             checked={showAdvancedFilters}
             onChange={(event) => setShowAdvancedFilters(event.target.checked)}
           />
-          <span className="advanced-filter-toggle-check" aria-hidden="true">
-            <svg viewBox="0 0 16 16" fill="none">
-              <path d="M3 8.5L6.2 11.7L13 4.9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+          <span className="advanced-filter-toggle-track" aria-hidden="true">
+            <span className="advanced-filter-toggle-thumb" />
           </span>
-          <span className="advanced-filter-toggle-text">Advanced filters</span>
+          <span className="advanced-filter-toggle-copy">
+            <span className="advanced-filter-toggle-text">Advanced filters</span>
+            <span className="advanced-filter-toggle-state">{showAdvancedFilters ? 'Enabled' : 'Off'}</span>
+          </span>
         </label>
 
         {showAdvancedFilters ? (

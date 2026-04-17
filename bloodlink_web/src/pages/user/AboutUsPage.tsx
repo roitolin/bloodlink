@@ -1,3 +1,12 @@
+const systemMembers = [
+  { name: 'Roi Veinze A. Tolin', role: 'Team Member', photoURL: '/member-photos/roi-veinze-tolin.png' },
+  { name: 'Mary Sheen Punay', role: 'Team Member', photoURL: '/member-photos/mary-sheen-punay.png' },
+  { name: 'Daisy Derial', role: 'Team Member', photoURL: '/member-photos/daisy-derial.jpg' },
+  { name: 'Ezra Baguhin', role: 'Team Member', photoURL: '/member-photos/ezra-baguhin.png' },
+  { name: 'Samuel Monares', role: 'Team Member', photoURL: '/member-photos/samuel-monares-jr.png' },
+  { name: 'Cyrus Dan Coyoca', role: 'Team Member', photoURL: '/member-photos/cyrus-coyoca.jpg' },
+]
+
 function AboutUsPage() {
   return (
     <section className="panel">
@@ -34,14 +43,18 @@ function AboutUsPage() {
             save lives.
           </p>
         </article>
-        <article className="about-card">
-          <h3>Developers</h3>
-          <p>1. Roi Veinze A. Tolin</p>
-          <p>2. Mary Sheen Punay</p>
-          <p>3. Daisy Derial</p>
-          <p>4. Ezra Baguhin</p>
-          <p>5. Samuel Monares</p>
-          <p>6. Cyrus Dan Coyoca</p>
+        <article className="about-card members-showcase">
+          <h3>System Members</h3>
+          <p>Core team behind BloodLink</p>
+          <div className="members-grid">
+            {systemMembers.map((member) => (
+              <article key={member.name} className="member-tile">
+                <img src={member.photoURL} alt={member.name} className="member-photo" />
+                <strong>{member.name}</strong>
+                <span className="member-role">{member.role}</span>
+              </article>
+            ))}
+          </div>
         </article>
       </div>
     </section>

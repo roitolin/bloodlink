@@ -2,8 +2,8 @@
   "firestore": {
     "database": "(default)",
     "location": "asia-southeast1",
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+    "rules": "config/firebase/firestore.rules",
+    "indexes": "config/firebase/firestore.indexes.json"
   },
   "functions": {
     "source": "functions"

@@ -8,7 +8,7 @@ import {
   Linking,
   TouchableOpacity,
 } from "react-native";
-import { Card, Text, Avatar, Button, TextInput, Switch } from "react-native-paper";
+import { Card, Text, Avatar, Button, TextInput } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import * as Location from "expo-location";
@@ -456,10 +456,25 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
         <Card.Content>
           <View style={styles.inlineToggleRow}>
             <Text variant="titleMedium">Blood Type</Text>
-            <View style={styles.filterToggleWrap}>
-              <Text style={styles.filterToggleText}>Advanced Filters</Text>
-              <Switch value={showAdvancedFilters} onValueChange={setShowAdvancedFilters} />
-            </View>
+            <TouchableOpacity
+              style={[styles.filterTogglePill, showAdvancedFilters && styles.filterTogglePillOn]}
+              onPress={() => setShowAdvancedFilters((prev) => !prev)}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: showAdvancedFilters }}
+              accessibilityLabel="Advanced Filters"
+            >
+              <View style={[styles.filterToggleTrack, showAdvancedFilters && styles.filterToggleTrackOn]}>
+                <View style={[styles.filterToggleThumb, showAdvancedFilters && styles.filterToggleThumbOn]} />
+              </View>
+              <View style={styles.filterToggleCopy}>
+                <Text style={[styles.filterToggleText, showAdvancedFilters && styles.filterToggleTextOn]}>
+                  Advanced Filters
+                </Text>
+                <Text style={[styles.filterToggleState, showAdvancedFilters && styles.filterToggleStateOn]}>
+                  {showAdvancedFilters ? "Enabled" : "Off"}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
           <Picker selectedValue={selectedBloodType} onValueChange={setSelectedBloodType} style={styles.picker}>
             <Picker.Item label="Any" value="" />
@@ -621,15 +636,62 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  filterToggleWrap: {
+  filterTogglePill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#d7dde7",
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: "#f8fafc",
+  },
+  filterTogglePillOn: {
+    borderColor: "#f0b9be",
+    backgroundColor: "#fff3f4",
+  },
+  filterToggleTrack: {
+    width: 32,
+    height: 19,
+    borderRadius: 999,
+    backgroundColor: "#d1d5db",
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  filterToggleTrackOn: {
+    backgroundColor: "#dc2626",
+  },
+  filterToggleThumb: {
+    width: 15,
+    height: 15,
+    borderRadius: 999,
+    backgroundColor: "#ffffff",
+  },
+  filterToggleThumbOn: {
+    alignSelf: "flex-end",
+  },
+  filterToggleCopy: {
+    gap: 1,
   },
   filterToggleText: {
-    color: "#374151",
+    color: "#1f2937",
     fontWeight: "700",
-    fontSize: 12,
+    fontSize: 11,
+    lineHeight: 14,
+  },
+  filterToggleTextOn: {
+    color: "#991b1b",
+  },
+  filterToggleState: {
+    color: "#6b7280",
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  filterToggleStateOn: {
+    color: "#b91c1c",
   },
   filterLabel: { marginTop: 10 },
   input: { marginVertical: 5 },

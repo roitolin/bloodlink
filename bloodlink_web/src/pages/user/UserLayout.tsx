@@ -78,6 +78,10 @@ function UserLayout() {
   const [threadMessages, setThreadMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(true)
+  const [termsChecked, setTermsChecked] = useState(false)
+  const [savingTerms, setSavingTerms] = useState(false)
+  const [termsConsentChecked, setTermsConsentChecked] = useState(false)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
@@ -99,6 +103,9 @@ function UserLayout() {
         photoURL: data?.photoURL?.trim() || user.photoURL || '',
         gender: String(data?.gender || '').toLowerCase(),
       })
+      const hasTermsAcceptedField = Boolean(data && Object.prototype.hasOwnProperty.call(data, 'termsAccepted'))
+      setTermsAccepted(hasTermsAcceptedField ? Boolean((data as { termsAccepted?: unknown }).termsAccepted) : true)
+      setTermsChecked(true)
     }
 
     void loadProfile()
@@ -111,6 +118,12 @@ function UserLayout() {
       window.removeEventListener('profile-updated', refreshProfile)
     }
   }, [user])
+
+  useEffect(() => {
+    if (termsAccepted) {
+      setTermsConsentChecked(false)
+    }
+  }, [termsAccepted])
 
   useEffect(() => {
     setMenuOpen(false)
@@ -237,6 +250,23 @@ function UserLayout() {
     navigate('/')
   }
 
+  const acceptTerms = async () => {
+    if (!user || savingTerms) return
+    if (!termsConsentChecked) return
+
+    setSavingTerms(true)
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        termsAccepted: true,
+        termsAcceptedAt: serverTimestamp(),
+      })
+      setTermsAccepted(true)
+    } finally {
+      setSavingTerms(false)
+      setTermsConsentChecked(false)
+    }
+  }
+
   const avatarSrc = profile.photoURL || getDefaultAvatar(profile.gender)
 
   const conversationItems = useMemo(() => {
@@ -318,7 +348,6 @@ function UserLayout() {
             <Link to="/app/how-to-donate">How to Donate Blood</Link>
             <Link to="/app/contact">Contact Support</Link>
             <Link to="/app/about">About Us</Link>
-            <Link to="/app/report-center">Report Center</Link>
           </nav>
 
           <div className="user-header-right">
@@ -443,6 +472,37 @@ function UserLayout() {
               </div>
             </div>
           )}
+        </div>
+      ) : null}
+      {termsChecked && !termsAccepted ? (
+        <div className="terms-gate-overlay" role="dialog" aria-modal="true" aria-label="Terms and Conditions">
+          <div className="terms-gate-card">
+            <h2>Terms &amp; Conditions</h2>
+            <p>
+              By using BloodLink, you agree to provide accurate information, communicate respectfully,
+              and use this platform only for legitimate blood donation and support needs.
+            </p>
+            <p>
+              BloodLink helps connect donors and requesters, but it does not replace medical professionals
+              or accredited blood centers.
+            </p>
+            <label className="terms-gate-check">
+              <input
+                type="checkbox"
+                checked={termsConsentChecked}
+                onChange={(event) => setTermsConsentChecked(event.target.checked)}
+              />
+              <span>I have read and agree to the Terms &amp; Conditions.</span>
+            </label>
+            <button
+              type="button"
+              className="solid-btn auth-submit"
+              onClick={() => void acceptTerms()}
+              disabled={savingTerms || !termsConsentChecked}
+            >
+              {savingTerms ? 'Saving...' : 'Accept and Continue'}
+            </button>
+          </div>
         </div>
       ) : null}
     </div>

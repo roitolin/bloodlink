@@ -1,4 +1,16 @@
-import { addDoc, collection, deleteDoc, doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+} from "firebase/firestore";
 import { db } from "../services/firebaseConfig";
 import { createAdminNotification } from "./createAdminNotification";
 
@@ -11,11 +23,27 @@ export type BlockState = {
 export const getUserBlockDocId = (blockerId: string, blockedId: string) => `${blockerId}__${blockedId}`;
 
 export const getBlockStateBetweenUsers = async (currentUserId: string, otherUserId: string): Promise<BlockState> => {
-  const blockedByMeSnap = await getDoc(doc(db, "user_blocks", getUserBlockDocId(currentUserId, otherUserId)));
-  const blockedMeSnap = await getDoc(doc(db, "user_blocks", getUserBlockDocId(otherUserId, currentUserId)));
+  const [blockedByMeSnap, blockedMeSnap] = await Promise.all([
+    getDocs(
+      query(
+        collection(db, "user_blocks"),
+        where("blockerId", "==", currentUserId),
+        where("blockedId", "==", otherUserId),
+        limit(1)
+      )
+    ),
+    getDocs(
+      query(
+        collection(db, "user_blocks"),
+        where("blockerId", "==", otherUserId),
+        where("blockedId", "==", currentUserId),
+        limit(1)
+      )
+    ),
+  ]);
 
-  const blockedByMe = blockedByMeSnap.exists() && blockedByMeSnap.data()?.active !== false;
-  const blockedMe = blockedMeSnap.exists() && blockedMeSnap.data()?.active !== false;
+  const blockedByMe = !blockedByMeSnap.empty && blockedByMeSnap.docs[0]?.data()?.active !== false;
+  const blockedMe = !blockedMeSnap.empty && blockedMeSnap.docs[0]?.data()?.active !== false;
 
   return {
     blockedByMe,

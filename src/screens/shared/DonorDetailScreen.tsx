@@ -13,9 +13,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Button as PaperButton } from "react-native-paper";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../services/firebaseConfig";
-import { getConversationId } from "../../utils/chatHelpers";
+import { ensureConversationForUsers } from "../../utils/chatHelpers";
 import { useResponsive } from "../../utils/responsive";
 import OsmMapEmbed from "../../components/OsmMapEmbed";
 import { blockUser, getBlockStateBetweenUsers, unblockUser } from "../../utils/userModeration";
@@ -117,32 +117,26 @@ export default function DonorDetailScreen({ route, navigation }: any) {
       return;
     }
 
-    const blockState = await getBlockStateBetweenUsers(currentUser.uid, donor.id);
-    if (blockState.blockedByMe) {
-      Alert.alert("Blocked", "You blocked this user. Unblock first to continue chatting.");
-      return;
-    }
-    if (blockState.blockedMe) {
-      Alert.alert("Unavailable", "You cannot chat with this user right now.");
-      return;
-    }
+    try {
+      const blockState = await getBlockStateBetweenUsers(currentUser.uid, donor.id);
+      if (blockState.blockedByMe) {
+        Alert.alert("Blocked", "You blocked this user. Unblock first to continue chatting.");
+        return;
+      }
+      if (blockState.blockedMe) {
+        Alert.alert("Unavailable", "You cannot chat with this user right now.");
+        return;
+      }
 
-    const conversationId = getConversationId(currentUser.uid, donor.id);
-    const convRef = doc(db, "conversations", conversationId);
-    const convSnap = await getDoc(convRef);
+      const conversationId = await ensureConversationForUsers(db, currentUser.uid, donor.id);
 
-    if (!convSnap.exists()) {
-      await setDoc(convRef, {
-        participants: [currentUser.uid, donor.id],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+      navigation.navigate("Chat", {
+        conversationId,
+        otherUserId: donor.id,
       });
+    } catch (error: any) {
+      Alert.alert("Error", error?.message || "Unable to open chat right now.");
     }
-
-    navigation.navigate("Chat", {
-      conversationId,
-      otherUserId: donor.id,
-    });
   };
 
   const handleBlockDonor = async () => {

@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Image } from "react-native";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -42,13 +42,37 @@ const sections: AboutSection[] = [
   },
 ];
 
-const developers = [
-  "Roi Veinze A. Tolin",
-  "Mary Sheen Punay",
-  "Daisy Derial",
-  "Ezra Baguhin",
-  "Samuel Monares",
-  "Cyrus Dan Coyoca",
+const systemMembers = [
+  {
+    name: "Roi Veinze A. Tolin",
+    role: "Team Member",
+    photo: require("../../../assets/member-photos/roi-veinze-tolin.png"),
+  },
+  {
+    name: "Mary Sheen Punay",
+    role: "Team Member",
+    photo: require("../../../assets/member-photos/mary-sheen-punay.png"),
+  },
+  {
+    name: "Daisy Derial",
+    role: "Team Member",
+    photo: require("../../../assets/member-photos/daisy-derial.jpg"),
+  },
+  {
+    name: "Ezra Baguhin",
+    role: "Team Member",
+    photo: require("../../../assets/member-photos/ezra-baguhin.png"),
+  },
+  {
+    name: "Samuel Monares",
+    role: "Team Member",
+    photo: require("../../../assets/member-photos/samuel-monares-jr.png"),
+  },
+  {
+    name: "Cyrus Dan Coyoca",
+    role: "Team Member",
+    photo: require("../../../assets/member-photos/cyrus-coyoca.jpg"),
+  },
 ];
 
 export default function AboutUsScreen() {
@@ -91,15 +115,15 @@ export default function AboutUsScreen() {
           <View style={styles.iconWrap}>
             <Ionicons name="people" size={18} color="#9a1d26" />
           </View>
-          <Text style={styles.aboutTitle}>Developers</Text>
+          <Text style={styles.aboutTitle}>System Members</Text>
         </View>
-        <View style={styles.developerList}>
-          {developers.map((name, index) => (
-            <View key={name} style={styles.developerRow}>
-              <View style={styles.numberBadge}>
-                <Text style={styles.numberText}>{index + 1}</Text>
-              </View>
-              <Text style={styles.developerName}>{name}</Text>
+        <Text style={styles.memberSubtitle}>Core team behind BloodLink</Text>
+        <View style={styles.memberGrid}>
+          {systemMembers.map((member) => (
+            <View key={member.name} style={styles.memberCard}>
+              <Image source={member.photo} style={styles.memberPhoto} resizeMode="cover" />
+              <Text style={styles.memberName}>{member.name}</Text>
+              <Text style={styles.memberRole}>{member.role}</Text>
             </View>
           ))}
         </View>
@@ -227,32 +251,49 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: "#3f4d5a",
   },
-  developerList: {
+  memberSubtitle: {
     marginTop: 2,
-  },
-  developerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 7,
-  },
-  numberBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#f8dbdf",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-  numberText: {
-    color: "#9a1d26",
+    marginBottom: 10,
+    color: "#6b7280",
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "600",
   },
-  developerName: {
-    flex: 1,
-    fontSize: 15,
-    color: "#2f3d48",
+  memberGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  memberCard: {
+    width: "48%",
+    borderWidth: 1,
+    borderColor: "#eceff4",
+    borderRadius: 12,
+    backgroundColor: "#f9fafb",
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: "center",
+  },
+  memberPhoto: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#ffffff",
+  },
+  memberName: {
+    textAlign: "center",
+    fontSize: 13,
+    color: "#1f2937",
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  memberRole: {
+    textAlign: "center",
+    fontSize: 11,
+    color: "#9a1d26",
     fontWeight: "600",
   },
 });

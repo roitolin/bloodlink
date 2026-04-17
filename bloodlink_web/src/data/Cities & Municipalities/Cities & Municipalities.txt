@@ -324,7 +324,7 @@ City of Batac
 City of Bayawan
 City of Baybay
 City of Bayugan
-City of BiÃƒÂ±an
+City of Biñan
 City of Bislig
 City of Bogo
 City of Borongan
@@ -349,7 +349,7 @@ City of Cebu
 City of Cotabato
 City of Dagupan
 City of Dapitan
-City of DasmariÃƒÂ±as
+City of Dasmariñas
 City of Davao
 City of Digos
 City of Dipolog
@@ -375,7 +375,7 @@ City of La Carlota
 City of Lamitan
 City of Laoag
 City of Lapu-Lapu
-City of Las PiÃƒÂ±as
+City of Las Piñas
 City of Legazpi
 City of Ligao
 City of Lipa
@@ -402,7 +402,7 @@ City of Ozamiz
 City of Pagadian
 City of Palayan
 City of Panabo
-City of ParaÃƒÂ±aque
+City of Parañaque
 City of Pasig
 City of Passi
 City of Puerto Princesa
@@ -515,13 +515,13 @@ Dipaculao
 Diplahan
 Ditsaan-Ramain
 Divilacan
-DoÃƒÂ±a Remedios Trinidad
+Doña Remedios Trinidad
 Dolores
 Don Carlos
 Don Marcelino
 Don Victoriano Chiongbian
 Donsol
-DueÃƒÂ±as
+Dueñas
 Duero
 Dulag
 Dumalag
@@ -772,7 +772,7 @@ Lope De Vega
 Lopez
 Lopez Jaena
 Loreto
-Los BaÃƒÂ±os
+Los Baños
 Luba
 Lubang
 Lubao
@@ -1044,11 +1044,11 @@ Patnanungan
 Patnongon
 Pavia
 Payao
-PeÃƒÂ±ablanca
-PeÃƒÂ±aranda
-PeÃƒÂ±arrubia
+Peñablanca
+Peñaranda
+Peñarrubia
 Perez
-PiÃƒÂ±an
+Piñan
 Piagapo
 Piat
 Picong
@@ -1123,7 +1123,7 @@ Sablan
 Sablayan
 Sabtang
 Sadanga
-SagÃƒÂ±ay
+Sagñay
 Sagada
 Sagay
 Sagbayan
@@ -1210,7 +1210,7 @@ Santa Teresita
 Santander
 Santiago
 Santo Domingo
-Santo NiÃƒÂ±o
+Santo Niño
 Santo Tomas
 Santol
 Sapad
@@ -1222,10 +1222,10 @@ Sarangani
 Sariaya
 Sarrat
 Sasmuan
-Science City of MuÃƒÂ±oz
+Science City of Muñoz
 Sebaste
 Sen. Ninoy Aquino
-Sergio OsmeÃƒÂ±a Sr.
+Sergio Osmeña Sr.
 Sevilla
 Shariff Aguak
 Shariff Saydona Mustapha
@@ -1261,7 +1261,7 @@ Siruma
 Sison
 Sitangkai
 Socorro
-Sofronio EspaÃƒÂ±ola
+Sofronio Española
 Sogod
 Solana
 Solano

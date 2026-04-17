@@ -17,11 +17,10 @@ import {
   addDoc,
   serverTimestamp,
   writeBatch,
-  setDoc,
   arrayRemove,
 } from "firebase/firestore";
 import { auth, db } from "../../services/firebaseConfig";
-import { getConversationId } from "../../utils/chatHelpers";
+import { ensureConversationForUsers } from "../../utils/chatHelpers";
 import { useResponsive } from "../../utils/responsive";
 import OsmMapEmbed from "../../components/OsmMapEmbed";
 import { useAuth } from "../../context/AuthContext";
@@ -206,16 +205,8 @@ export default function RequestDetailScreen({ route, navigation }: any) {
           createdAt: serverTimestamp(),
         });
 
-        const conversationId = getConversationId(user.uid, latestRequest.requesterId);
+        const conversationId = await ensureConversationForUsers(db, user.uid, latestRequest.requesterId);
         const convRef = doc(db, "conversations", conversationId);
-        const convSnap = await getDoc(convRef);
-        if (!convSnap.exists()) {
-          await setDoc(convRef, {
-            participants: [user.uid, latestRequest.requesterId],
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
-        }
 
         await addDoc(collection(db, "conversations", conversationId, "messages"), {
           senderId: user.uid,
@@ -420,28 +411,22 @@ export default function RequestDetailScreen({ route, navigation }: any) {
       return;
     }
 
-    const blockState = await getBlockStateBetweenUsers(user.uid, otherUserId);
-    if (blockState.blockedByMe) {
-      Alert.alert("Blocked", "You blocked this user. Unblock first to continue chatting.");
-      return;
-    }
-    if (blockState.blockedMe) {
-      Alert.alert("Unavailable", "You cannot chat with this user right now.");
-      return;
-    }
+    try {
+      const blockState = await getBlockStateBetweenUsers(user.uid, otherUserId);
+      if (blockState.blockedByMe) {
+        Alert.alert("Blocked", "You blocked this user. Unblock first to continue chatting.");
+        return;
+      }
+      if (blockState.blockedMe) {
+        Alert.alert("Unavailable", "You cannot chat with this user right now.");
+        return;
+      }
 
-    const conversationId = getConversationId(user.uid, otherUserId);
-    const convRef = doc(db, "conversations", conversationId);
-    const convSnap = await getDoc(convRef);
-    if (!convSnap.exists()) {
-      await setDoc(convRef, {
-        participants: [user.uid, otherUserId],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      const conversationId = await ensureConversationForUsers(db, user.uid, otherUserId);
+      navigation.navigate("Chat", { conversationId, otherUserId, requestId });
+    } catch (error: any) {
+      Alert.alert("Error", error?.message || "Unable to open chat right now.");
     }
-
-    navigation.navigate("Chat", { conversationId, otherUserId, requestId });
   };
 
   const handleBlockCounterparty = async () => {

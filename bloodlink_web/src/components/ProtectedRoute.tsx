@@ -67,6 +67,11 @@ function ProtectedRoute({
     return <Navigate to={target} replace />
   }
 
+  if (!user.emailVerified) {
+    const verifyTarget = `/verify-email?next=${encodeURIComponent(location.pathname + location.search)}`
+    return <Navigate to={verifyTarget} replace />
+  }
+
   if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
     return <Navigate to={redirectUnauthorizedTo} replace />
   }

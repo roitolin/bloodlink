@@ -8,6 +8,8 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+logs/
+firebase-debug.log
 
 # Native
 .kotlin/
@@ -39,3 +41,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# local project artifacts
+.gradle/
+serviceAccountKey.json
+docs/references/all_code_dump.txt
+bloodlink_web/dist/

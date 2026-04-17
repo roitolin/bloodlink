@@ -30,7 +30,6 @@ import {
   serverTimestamp,
   doc,
   updateDoc,
-  setDoc,
   deleteDoc,
   getDoc,
   getDocs,
@@ -43,7 +42,7 @@ import { auth, db } from "../../services/firebaseConfig";
 import { useResponsive } from "../../utils/responsive";
 import { getDefaultProfileImage } from "../../utils/defaultProfileImage";
 import { useAuth } from "../../context/AuthContext";
-import { getConversationId } from "../../utils/chatHelpers";
+import { ensureConversationForUsers, getConversationId } from "../../utils/chatHelpers";
 import { blockUser, getBlockStateBetweenUsers, unblockUser } from "../../utils/userModeration";
 import { ensureDonorCanAcceptRequest } from "../../utils/donorAcceptance";
 import { syncPublicCityAvailability } from "../../utils/publicCityAvailability";
@@ -258,22 +257,45 @@ export default function ChatScreen({ route, navigation }: any) {
 
   // Fetch messages and mark conversation's last message as read
   useEffect(() => {
+    const ensureConversation = async () => {
+      if (!userId || !otherUserId) return;
+      try {
+        await ensureConversationForUsers(db, userId, otherUserId);
+      } catch (error) {
+        console.warn("Failed to initialize conversation:", error);
+      }
+    };
+    void ensureConversation();
+  }, [otherUserId, userId]);
+
+  useEffect(() => {
     const q = query(
       collection(db, "conversations", conversationId, "messages"),
       orderBy("timestamp", "asc")
     );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setMessages(list);
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setMessages(list);
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      },
+      (error: any) => {
+        if (error?.code === "permission-denied") {
+          Alert.alert("Unavailable", "You do not have permission to open this chat.");
+          navigation.goBack();
+          return;
+        }
+        Alert.alert("Error", error?.message || "Failed to load chat messages.");
+      }
+    );
     return unsubscribe;
-  }, [conversationId]);
+  }, [conversationId, navigation]);
 
   useEffect(() => {
     if (!requestId) return;

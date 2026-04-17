@@ -79,7 +79,10 @@ type InfoModalType = 'privacy' | 'terms' | 'support' | 'contact'
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
 function normalizeCity(value: string | undefined | null) {
-  const base = String(value || '').trim().toLowerCase()
+  const base = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^[^a-z0-9]+/i, '')
   if (!base) return ''
 
   const noPrefix = base.replace(/^(city|municipality) of\s+/, '')
@@ -215,11 +218,7 @@ function LandingPage() {
         if (viewer) {
           await syncPublicCityAvailability(db)
         }
-        const [publicSnap, usersSnap, requestsSnap] = await Promise.all([
-          getDocs(collection(db, 'public_city_availability')),
-          getDocs(collection(db, 'users')),
-          getDocs(collection(db, 'requests')),
-        ])
+        const publicSnap = await getDocs(collection(db, 'public_city_availability'))
 
         const cityMap = buildCityMapWithAllPhilippinePlaces(placeLabels)
         const nextBloodTypeCounts: Record<string, BloodTypeSummary> = {}
@@ -236,35 +235,42 @@ function LandingPage() {
           }
         })
 
-        usersSnap.docs
-          .map((itemDoc) => itemDoc.data() as { role?: string; availabilityStatus?: string; city?: string; bloodType?: string })
-          .filter((item) => String(item.role || '').toLowerCase() !== 'admin')
-          .filter((item) => String(item.availabilityStatus || '').toLowerCase() === 'available')
-          .forEach((item) => {
-            const cityKey = normalizeCity(item.city)
-            const bloodType = normalizeBloodType(item.bloodType)
-            if (!cityKey || !bloodType) return
-            const mapKey = `${cityKey}::${bloodType}`
-            const current = nextBloodTypeCounts[mapKey] || { donors: 0, requests: 0 }
-            current.donors += 1
-            nextBloodTypeCounts[mapKey] = current
-          })
+        if (viewer) {
+          const [usersSnap, requestsSnap] = await Promise.all([
+            getDocs(collection(db, 'users')),
+            getDocs(collection(db, 'requests')),
+          ])
 
-        requestsSnap.docs
-          .map((itemDoc) => itemDoc.data() as { status?: string; city?: string; bloodTypeNeeded?: string })
-          .filter((item) => {
-            const status = String(item.status || '').toLowerCase()
-            return status === 'pending' || status === 'accepted'
-          })
-          .forEach((item) => {
-            const cityKey = normalizeCity(item.city)
-            const bloodType = normalizeBloodType(item.bloodTypeNeeded)
-            if (!cityKey || !bloodType) return
-            const mapKey = `${cityKey}::${bloodType}`
-            const current = nextBloodTypeCounts[mapKey] || { donors: 0, requests: 0 }
-            current.requests += 1
-            nextBloodTypeCounts[mapKey] = current
-          })
+          usersSnap.docs
+            .map((itemDoc) => itemDoc.data() as { role?: string; availabilityStatus?: string; city?: string; bloodType?: string })
+            .filter((item) => String(item.role || '').toLowerCase() !== 'admin')
+            .filter((item) => String(item.availabilityStatus || '').toLowerCase() === 'available')
+            .forEach((item) => {
+              const cityKey = normalizeCity(item.city)
+              const bloodType = normalizeBloodType(item.bloodType)
+              if (!cityKey || !bloodType) return
+              const mapKey = `${cityKey}::${bloodType}`
+              const current = nextBloodTypeCounts[mapKey] || { donors: 0, requests: 0 }
+              current.donors += 1
+              nextBloodTypeCounts[mapKey] = current
+            })
+
+          requestsSnap.docs
+            .map((itemDoc) => itemDoc.data() as { status?: string; city?: string; bloodTypeNeeded?: string })
+            .filter((item) => {
+              const status = String(item.status || '').toLowerCase()
+              return status === 'pending' || status === 'accepted'
+            })
+            .forEach((item) => {
+              const cityKey = normalizeCity(item.city)
+              const bloodType = normalizeBloodType(item.bloodTypeNeeded)
+              if (!cityKey || !bloodType) return
+              const mapKey = `${cityKey}::${bloodType}`
+              const current = nextBloodTypeCounts[mapKey] || { donors: 0, requests: 0 }
+              current.requests += 1
+              nextBloodTypeCounts[mapKey] = current
+            })
+        }
 
         const nextCityCounts = Object.values(cityMap)
           .sort((a, b) => (b.donors + b.requests) - (a.donors + a.requests) || a.cityLabel.localeCompare(b.cityLabel))
@@ -493,7 +499,7 @@ function LandingPage() {
               <div className="realtime-city-search">
                 <label htmlFor="city-search-input">Search city</label>
                 <div className="realtime-city-input-wrap">
-                  <span aria-hidden="true">o</span>
+                  <span aria-hidden="true">⌕</span>
                   <input
                     id="city-search-input"
                     type="text"
@@ -605,9 +611,9 @@ function LandingPage() {
               networks.
             </p>
             <div className="footer-social-links" aria-label="Social links">
-              <a href="#home" aria-label="Back to top" onClick={(event) => { event.preventDefault(); scrollToSection('home') }}>â—‰</a>
-              <a href="#city-availability" aria-label="Go to availability" onClick={(event) => { event.preventDefault(); scrollToSection('city-availability') }}>âœš</a>
-              <a href="mailto:Bloodlink@gmail.com?subject=Bloodlink%20Support" aria-label="Email Bloodlink">âœ‰</a>
+              <a href="#home" aria-label="Back to top" onClick={(event) => { event.preventDefault(); scrollToSection('home') }}>◎</a>
+              <a href="#city-availability" aria-label="Go to availability" onClick={(event) => { event.preventDefault(); scrollToSection('city-availability') }}>✚</a>
+              <a href="mailto:Bloodlink@gmail.com?subject=Bloodlink%20Support" aria-label="Email Bloodlink">✉</a>
             </div>
           </div>
           <div className="footer-column">
@@ -615,17 +621,16 @@ function LandingPage() {
             <div className="footer-links">
               <button type="button" className="footer-link-btn" onClick={() => setInfoModal('privacy')}>Privacy Policy</button>
               <button type="button" className="footer-link-btn" onClick={() => setInfoModal('terms')}>Terms of Service</button>
-              <button type="button" className="footer-link-btn" onClick={() => setInfoModal('support')}>Support Center</button>
               <button type="button" className="footer-link-btn" onClick={() => setInfoModal('contact')}>Contact Us</button>
             </div>
           </div>
           <div className="footer-column">
             <h4>Support</h4>
             <div className="footer-support-list">
-              <a href="mailto:Bloodlink@gmail.com"><span aria-hidden="true">âœ‰</span> Bloodlink@gmail.com</a>
-              <a href="tel:09959281914"><span aria-hidden="true">â˜Ž</span> 09959281914</a>
+              <a href="mailto:Bloodlink@gmail.com"><span aria-hidden="true">✉</span> Bloodlink@gmail.com</a>
+              <a href="tel:09959281914"><span aria-hidden="true">☎</span> 09959281914</a>
               <a href="#city-availability" onClick={(event) => { event.preventDefault(); scrollToSection('city-availability') }}>
-                <span aria-hidden="true">â—Œ</span> 24/7 Emergency Response
+                <span aria-hidden="true">◌</span> 24/7 Emergency Response
               </a>
             </div>
           </div>
