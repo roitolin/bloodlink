@@ -4,12 +4,23 @@ import { useAdminManagementBreakdownCount } from "../../hooks/useAdminManagement
 import { useAdminNotificationCount } from "../../hooks/useAdminNotificationCount";
 import { useUnreadSupportCount } from "../../hooks/useUnreadSupportCount";
 import { useResponsive } from "../../utils/responsive";
+import { useAuth } from "../../context/AuthContext";
 
 export default function AdminMoreScreen({ navigation }: any) {
+  const { role } = useAuth();
   const { isDesktop } = useResponsive();
   const unreadSupportCount = useUnreadSupportCount();
   const adminNotificationCount = useAdminNotificationCount();
   const { donors: donorPendingCount, requests: requestPendingCount } = useAdminManagementBreakdownCount();
+  const isBloodAdmin = role === "admin" || role === "blood_admin";
+  const isFuneralAdmin = role === "admin" || role === "funeral_admin";
+  const canSeeCommsAndInsights = role === "admin" || role === "blood_admin";
+  const separatedToolsDescription =
+    role === "blood_admin"
+      ? "Open dedicated admin areas for blood operations and deeper monitoring controls."
+      : role === "funeral_admin"
+        ? "Open dedicated admin areas for funeral shops and deeper monitoring controls."
+        : "Open dedicated admin areas for blood operations, funeral shops, and deeper monitoring controls.";
 
   return (
     <ScrollView contentContainerStyle={[styles.container, isDesktop && styles.containerDesktop]}>
@@ -21,18 +32,24 @@ export default function AdminMoreScreen({ navigation }: any) {
           Use this area for secondary admin actions to keep the main navbar cleaner.
         </Text>
         <View style={styles.headerMetaRow}>
-          <View style={styles.headerMetaItem}>
-            <Badge style={styles.metaBadge}>{requestPendingCount > 99 ? "99+" : requestPendingCount}</Badge>
-            <Text style={styles.metaLabel}>Request Alerts</Text>
-          </View>
-          <View style={styles.headerMetaItem}>
-            <Badge style={styles.metaBadge}>{donorPendingCount > 99 ? "99+" : donorPendingCount}</Badge>
-            <Text style={styles.metaLabel}>Donor Alerts</Text>
-          </View>
-          <View style={styles.headerMetaItem}>
-            <Badge style={styles.metaBadge}>{unreadSupportCount > 99 ? "99+" : unreadSupportCount}</Badge>
-            <Text style={styles.metaLabel}>Support Unread</Text>
-          </View>
+          {isBloodAdmin ? (
+            <View style={styles.headerMetaItem}>
+              <Badge style={styles.metaBadge}>{requestPendingCount > 99 ? "99+" : requestPendingCount}</Badge>
+              <Text style={styles.metaLabel}>Request Alerts</Text>
+            </View>
+          ) : null}
+          {isBloodAdmin ? (
+            <View style={styles.headerMetaItem}>
+              <Badge style={styles.metaBadge}>{donorPendingCount > 99 ? "99+" : donorPendingCount}</Badge>
+              <Text style={styles.metaLabel}>Donor Alerts</Text>
+            </View>
+          ) : null}
+          {canSeeCommsAndInsights ? (
+            <View style={styles.headerMetaItem}>
+              <Badge style={styles.metaBadge}>{unreadSupportCount > 99 ? "99+" : unreadSupportCount}</Badge>
+              <Text style={styles.metaLabel}>Support Unread</Text>
+            </View>
+          ) : null}
           <View style={styles.headerMetaItem}>
             <Badge style={styles.metaBadge}>{adminNotificationCount > 99 ? "99+" : adminNotificationCount}</Badge>
             <Text style={styles.metaLabel}>All Notifications</Text>
@@ -40,40 +57,54 @@ export default function AdminMoreScreen({ navigation }: any) {
         </View>
       </View>
 
-      <Card style={styles.card} mode="elevated">
-        <Card.Title title="Communication Tools" />
-        <Card.Content>
-          <Text style={styles.cardText}>
-            Manage support, public notices, and community response tools.
-          </Text>
-        </Card.Content>
-        <Card.Actions style={styles.multiActions}>
-          <Button mode="contained" onPress={() => navigation.navigate("Support")}>
-            Support Inbox
-          </Button>
-          <Button mode="outlined" onPress={() => navigation.navigate("Announcements")}>
-            Announcements
-          </Button>
-          <Button mode="outlined" onPress={() => navigation.navigate("Feedback")}>
-            Rate & Feedback
-          </Button>
-          <Button mode="text" onPress={() => navigation.navigate("Notifications")}>
-            Notifications
-          </Button>
-        </Card.Actions>
-      </Card>
+      {canSeeCommsAndInsights ? (
+        <Card style={styles.card} mode="elevated">
+          <Card.Title title="Communication Tools" />
+          <Card.Content>
+            <Text style={styles.cardText}>
+              Manage support, public notices, and community response tools.
+            </Text>
+          </Card.Content>
+          <Card.Actions style={styles.multiActions}>
+            <Button mode="contained" onPress={() => navigation.navigate("Support")}>
+              Support Inbox
+            </Button>
+            <Button mode="outlined" onPress={() => navigation.navigate("Announcements")}>
+              Announcements
+            </Button>
+            <Button mode="outlined" onPress={() => navigation.navigate("Feedback")}>
+              Rate & Feedback
+            </Button>
+            <Button mode="text" onPress={() => navigation.navigate("Notifications")}>
+              Notifications
+            </Button>
+          </Card.Actions>
+        </Card>
+      ) : null}
 
       <Card style={styles.card} mode="elevated">
-        <Card.Title title="Oversight Tools" />
+        <Card.Title title="Separated Admin Tools" />
         <Card.Content>
           <Text style={styles.cardText}>
-            Open deeper monitoring and moderation screens when you need advanced admin controls.
+            {separatedToolsDescription}
           </Text>
         </Card.Content>
         <Card.Actions style={styles.multiActions}>
-          <Button mode="contained-tonal" onPress={() => navigation.navigate("Analytics")}>
-            Analytics
-          </Button>
+          {isBloodAdmin ? (
+            <Button mode="contained-tonal" onPress={() => navigation.navigate("Blood")}>
+              Admin Blood
+            </Button>
+          ) : null}
+          {isFuneralAdmin ? (
+            <Button mode="contained-tonal" onPress={() => navigation.navigate("Funeral")}>
+              Shops
+            </Button>
+          ) : null}
+          {canSeeCommsAndInsights ? (
+            <Button mode="contained-tonal" onPress={() => navigation.navigate("Analytics")}>
+              Analytics
+            </Button>
+          ) : null}
           <Button mode="contained-tonal" onPress={() => navigation.navigate("Moderation")}>
             Moderation
           </Button>

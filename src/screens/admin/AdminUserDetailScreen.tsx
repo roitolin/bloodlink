@@ -17,13 +17,11 @@ import {
   where,
   orderBy,
   getDocs,
-  setDoc,
-  serverTimestamp,
 } from "firebase/firestore";
 import { auth, db } from "../../services/firebaseConfig";
 import { useResponsive } from "../../utils/responsive";
 import { getDefaultProfileImage } from "../../utils/defaultProfileImage";
-import { getConversationId } from "../../utils/chatHelpers";
+import { ensureConversationForUsers } from "../../utils/chatHelpers";
 
 type User = {
   id: string;
@@ -42,6 +40,7 @@ type User = {
   donorStatus?: string;
   availabilityStatus?: string;
   medicalCertificateURL?: string;
+  validIdURL?: string;
 };
 
 type Request = {
@@ -125,6 +124,18 @@ export default function AdminUserDetailScreen({ route, navigation }: any) {
     }
   };
 
+  const openValidId = async () => {
+    if (!user?.validIdURL) {
+      Alert.alert("No valid ID", "This user has not uploaded a valid ID.");
+      return;
+    }
+    try {
+      await Linking.openURL(user.validIdURL);
+    } catch {
+      Alert.alert("Error", "Unable to open valid ID.");
+    }
+  };
+
   const startConversation = async () => {
     if (!user) return;
     const currentUser = auth.currentUser;
@@ -133,16 +144,7 @@ export default function AdminUserDetailScreen({ route, navigation }: any) {
       return;
     }
 
-    const conversationId = getConversationId(currentUser.uid, user.id);
-    const convRef = doc(db, "conversations", conversationId);
-    const convSnap = await getDoc(convRef);
-    if (!convSnap.exists()) {
-      await setDoc(convRef, {
-        participants: [currentUser.uid, user.id],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    }
+    const conversationId = await ensureConversationForUsers(db, currentUser.uid, user.id);
     navigation.navigate("Chat", {
       conversationId,
       otherUserId: user.id,
@@ -224,6 +226,13 @@ export default function AdminUserDetailScreen({ route, navigation }: any) {
               ) : (
                 <Text>Certificate: Not uploaded</Text>
               )}
+              {user.validIdURL ? (
+                <Button mode="outlined" onPress={openValidId} style={{ marginTop: 8 }}>
+                  View Valid ID
+                </Button>
+              ) : (
+                <Text>Valid ID: Not uploaded</Text>
+              )}
             </>
           ) : (
             <>
@@ -231,6 +240,11 @@ export default function AdminUserDetailScreen({ route, navigation }: any) {
               {user.medicalCertificateURL ? (
                 <Button mode="outlined" onPress={openCertificate} style={{ marginTop: 8 }}>
                   View Medical Certificate
+                </Button>
+              ) : null}
+              {user.validIdURL ? (
+                <Button mode="outlined" onPress={openValidId} style={{ marginTop: 8 }}>
+                  View Valid ID
                 </Button>
               ) : null}
             </>

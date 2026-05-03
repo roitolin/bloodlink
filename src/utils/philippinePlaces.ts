@@ -1,6 +1,17 @@
 const rawPhilippinePlaces = require("../data/philippineCitiesMunicipalities.json") as string[];
 
 const toPlaceLabel = (value: unknown) => String(value || "").trim();
+const normalizePlaceText = (value: unknown) =>
+  toPlaceLabel(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+const splitPlaceTextSegments = (value: unknown) =>
+  toPlaceLabel(value)
+    .split(/[\n,;|()]+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
 
 export const normalizePhilippinePlace = (value: unknown) =>
   toPlaceLabel(value)
@@ -15,6 +26,9 @@ const philippinePlaces = Array.from(
 ).sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }));
 
 const placeLookup = new Map(philippinePlaces.map((item) => [normalizePhilippinePlace(item), item]));
+const normalizedPlaceEntries = philippinePlaces
+  .map((item) => ({ label: item, normalized: normalizePhilippinePlace(item) }))
+  .sort((a, b) => b.normalized.length - a.normalized.length);
 
 export const PHILIPPINE_PLACES = philippinePlaces;
 
@@ -31,9 +45,31 @@ export const findPhilippinePlaceMatch = (query: unknown) => {
   return philippinePlaces.find((item) => normalizePhilippinePlace(item).includes(normalizedQuery)) || "";
 };
 
+export const extractPhilippinePlaceFromText = (value: unknown) => {
+  const directMatch = findPhilippinePlaceMatch(value);
+  if (directMatch) return directMatch;
+
+  const segments = splitPlaceTextSegments(value);
+  for (const segment of segments) {
+    const matched = findPhilippinePlaceMatch(segment);
+    if (matched) return matched;
+  }
+
+  const normalizedText = normalizePlaceText(value);
+  if (!normalizedText) return "";
+
+  const paddedText = ` ${normalizedText} `;
+  return normalizedPlaceEntries.find(({ normalized }) => paddedText.includes(` ${normalized} `))?.label || "";
+};
+
 export const resolvePhilippinePlaceName = (...values: unknown[]) => {
   for (const value of values) {
     const matched = findPhilippinePlaceMatch(value);
+    if (matched) return matched;
+  }
+
+  for (const value of values) {
+    const matched = extractPhilippinePlaceFromText(value);
     if (matched) return matched;
   }
 

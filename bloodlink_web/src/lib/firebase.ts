@@ -1,21 +1,33 @@
-﻿import { initializeApp } from 'firebase/app'
+import { getApp, getApps, initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, initializeFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
-const firebaseConfig = {
-  apiKey: 'AIzaSyDT7eSQfY5nB86XvEHTxg3t_mvbwaETUXI',
-  authDomain: 'bloodlink-7b8eb.firebaseapp.com',
-  projectId: 'bloodlink-7b8eb',
-  storageBucket: 'bloodlink-7b8eb.firebasestorage.app',
-  messagingSenderId: '570965616445',
-  appId: '1:570965616445:web:d42e175ac14714dde18754',
-  measurementId: 'G-ENZMK3LY2P',
+const requireEnv = (...names: string[]): string => {
+  const value = names.map((name) => import.meta.env[name]).find((item) => typeof item === 'string' && item.length > 0)
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${names.join(' or ')}`)
+  }
+  return value
 }
 
-const app = initializeApp(firebaseConfig)
+const firebaseConfig = {
+  apiKey: requireEnv('VITE_FIREBASE_API_KEY', 'EXPO_PUBLIC_FIREBASE_API_KEY'),
+  authDomain: requireEnv('VITE_FIREBASE_AUTH_DOMAIN', 'EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN'),
+  projectId: requireEnv('VITE_FIREBASE_PROJECT_ID', 'EXPO_PUBLIC_FIREBASE_PROJECT_ID'),
+  storageBucket: requireEnv('VITE_FIREBASE_STORAGE_BUCKET', 'EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET'),
+  messagingSenderId: requireEnv('VITE_FIREBASE_MESSAGING_SENDER_ID', 'EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'),
+  appId: requireEnv('VITE_FIREBASE_APP_ID', 'EXPO_PUBLIC_FIREBASE_APP_ID'),
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || import.meta.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || undefined,
+}
+
+const hasExistingApp = getApps().length > 0
+const app = hasExistingApp ? getApp() : initializeApp(firebaseConfig)
 
 export const auth = getAuth(app)
-export const db = getFirestore(app)
+export const db = hasExistingApp
+  ? getFirestore(app)
+  : initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+    })
 export const storage = getStorage(app)
-

@@ -11,13 +11,12 @@ import {
   Button,
   Keyboard,
   Linking,
-  SafeAreaView,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { Card, Text, useTheme, IconButton, Avatar } from "react-native-paper";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import {
@@ -42,11 +41,13 @@ import { auth, db } from "../../services/firebaseConfig";
 import { useResponsive } from "../../utils/responsive";
 import { getDefaultProfileImage } from "../../utils/defaultProfileImage";
 import { useAuth } from "../../context/AuthContext";
-import { ensureConversationForUsers, getConversationId } from "../../utils/chatHelpers";
+import { ensureConversationForUsers } from "../../utils/chatHelpers";
 import { blockUser, getBlockStateBetweenUsers, unblockUser } from "../../utils/userModeration";
 import { ensureDonorCanAcceptRequest } from "../../utils/donorAcceptance";
 import { syncPublicCityAvailability } from "../../utils/publicCityAvailability";
 import { useAppDialog } from "../../hooks/useAppDialog";
+import { consumeRateLimit, isRateLimitError } from "../../utils/rateLimiter";
+import { hasSuspiciousPayload, sanitizePlainText } from "../../utils/inputSecurity";
 
 const EMOJIS = ["👍", "😂", "❤️", "😮", "😢", "🙏"];
 
@@ -56,6 +57,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const { conversationId, otherUserId, requestId } = route.params || {};
   const { role } = useAuth();
   const [messages, setMessages] = useState<any[]>([]);
+  const [conversationReady, setConversationReady] = useState(!otherUserId);
   const [inputText, setInputText] = useState("");
   const [replyTo, setReplyTo] = useState<any>(null);
   const flatListRef = useRef<FlatList>(null);
@@ -135,16 +137,13 @@ export default function ChatScreen({ route, navigation }: any) {
       }
 
       const sanitizedPhone = rawPhone.replace(/\s+/g, "");
-      const url =
-        mode === "call"
-          ? `tel:${sanitizedPhone}`
-          : `sms:${sanitizedPhone}?body=${encodeURIComponent("Hi, this is from BloodLink chat.")}`;
-      const canOpen = await Linking.canOpenURL(url);
-      if (!canOpen) {
+      const url = mode === "call" ? `tel:${sanitizedPhone}` : `sms:${sanitizedPhone}`;
+
+      try {
+        await Linking.openURL(url);
+      } catch {
         Alert.alert("Unavailable", mode === "call" ? "Call is not available on this device." : "SMS is not available on this device.");
-        return;
       }
-      await Linking.openURL(url);
     },
     [otherUserPhone]
   );
@@ -258,17 +257,31 @@ export default function ChatScreen({ route, navigation }: any) {
   // Fetch messages and mark conversation's last message as read
   useEffect(() => {
     const ensureConversation = async () => {
-      if (!userId || !otherUserId) return;
+      setConversationReady(!otherUserId);
+      if (!userId || !otherUserId) {
+        setConversationReady(true);
+        return;
+      }
       try {
         await ensureConversationForUsers(db, userId, otherUserId);
+        setConversationReady(true);
       } catch (error) {
         console.warn("Failed to initialize conversation:", error);
+        const firebaseError = error as any;
+        if (firebaseError?.code === "permission-denied") {
+          Alert.alert("Unavailable", "You do not have permission to open this chat.");
+          navigation.goBack();
+        }
       }
     };
     void ensureConversation();
-  }, [otherUserId, userId]);
+  }, [navigation, otherUserId, userId]);
 
   useEffect(() => {
+    if (!conversationReady) {
+      setMessages([]);
+      return;
+    }
     const q = query(
       collection(db, "conversations", conversationId, "messages"),
       orderBy("timestamp", "asc")
@@ -295,24 +308,31 @@ export default function ChatScreen({ route, navigation }: any) {
       }
     );
     return unsubscribe;
-  }, [conversationId, navigation]);
+  }, [conversationId, conversationReady, navigation]);
 
   useEffect(() => {
     if (!requestId) return;
-    const unsubscribe = onSnapshot(doc(db, "requests", requestId), (docSnap) => {
-      if (docSnap.exists()) {
-        setRequestContext({ id: docSnap.id, ...docSnap.data() });
-      } else {
+    const unsubscribe = onSnapshot(
+      doc(db, "requests", requestId),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setRequestContext({ id: docSnap.id, ...docSnap.data() });
+        } else {
+          setRequestContext(null);
+        }
+      },
+      (error: any) => {
+        console.warn("Request context listener warning:", error?.message || error);
         setRequestContext(null);
       }
-    });
+    );
     return unsubscribe;
   }, [requestId]);
 
   // Mark conversation's last message as read when screen is focused
   useEffect(() => {
     const markConversationAsRead = async () => {
-      if (!userId || !otherUserId) return;
+      if (!conversationReady || !userId || !otherUserId) return;
       try {
         const convRef = doc(db, "conversations", conversationId);
         const convSnap = await getDoc(convRef);
@@ -332,12 +352,12 @@ export default function ChatScreen({ route, navigation }: any) {
       }
     };
     markConversationAsRead();
-  }, [conversationId, userId, otherUserId]);
+  }, [conversationId, conversationReady, userId, otherUserId]);
 
   // Mark messages as read (individual message read receipts)
   useEffect(() => {
     const markAsRead = async () => {
-      if (!userId || !otherUserId) return;
+      if (!conversationReady || !userId || !otherUserId) return;
       try {
         const unreadMessages = messages.filter(
           (msg) =>
@@ -366,7 +386,7 @@ export default function ChatScreen({ route, navigation }: any) {
     };
 
     markAsRead();
-  }, [messages, userId, otherUserId, conversationId]);
+  }, [messages, conversationReady, userId, otherUserId, conversationId]);
 
   // If this conversation came from support notifications, mark them as read too.
   useEffect(() => {
@@ -409,7 +429,7 @@ export default function ChatScreen({ route, navigation }: any) {
 
   // Keep list pinned while typing
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener("keyboardDidShow", (event) => {
+    const keyboardDidShowListener = Keyboard.addListener("keyboardDidShow", () => {
       setKeyboardVisible(true);
       flatListRef.current?.scrollToEnd({ animated: true });
     });
@@ -430,7 +450,8 @@ export default function ChatScreen({ route, navigation }: any) {
   };
 
   const sendMessage = async () => {
-    if (!inputText.trim()) return;
+    const safeText = sanitizePlainText(inputText, 1500);
+    if (!safeText) return;
     if (blockState.blockedByMe) {
       Alert.alert("Blocked", "You blocked this user. Unblock first to send messages.");
       return;
@@ -440,9 +461,20 @@ export default function ChatScreen({ route, navigation }: any) {
       return;
     }
     try {
+      if (!userId || !otherUserId) {
+        Alert.alert("Unavailable", "Unable to send message right now.");
+        return;
+      }
+
+      await consumeRateLimit(db, userId, "chat_message", conversationId || otherUserId);
+      if (hasSuspiciousPayload(safeText)) {
+        Alert.alert("Blocked", "Message contains unsafe text patterns. Please revise and try again.");
+        return;
+      }
+
       const messageData: any = {
         senderId: userId,
-        text: inputText.trim(),
+        text: safeText,
         timestamp: serverTimestamp(),
         readBy: [userId],
       };
@@ -454,7 +486,7 @@ export default function ChatScreen({ route, navigation }: any) {
       await addDoc(collection(db, "conversations", conversationId, "messages"), messageData);
       await updateDoc(doc(db, "conversations", conversationId), {
         lastMessage: {
-          text: inputText.trim(),
+          text: safeText,
           senderId: userId,
           timestamp: serverTimestamp(),
           readBy: [userId],
@@ -465,15 +497,20 @@ export default function ChatScreen({ route, navigation }: any) {
       setInputText("");
       setReplyTo(null);
       flatListRef.current?.scrollToEnd({ animated: true });
-    } catch (error) {
+    } catch (error: any) {
+      if (isRateLimitError(error)) {
+        Alert.alert("Slow down", `You are sending messages too quickly. Try again in ${error.retryAfterSeconds}s.`);
+        return;
+      }
       console.error(error);
+      Alert.alert("Error", error?.message || "Failed to send message.");
     }
   };
 
   const handlePhotoPress = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"],
         allowsEditing: false,
         quality: 0.8,
       });
@@ -585,16 +622,8 @@ export default function ChatScreen({ route, navigation }: any) {
           createdAt: serverTimestamp(),
         });
 
-        const convId = getConversationId(user.uid, latestRequest.requesterId);
+        const convId = await ensureConversationForUsers(db, user.uid, latestRequest.requesterId);
         const convRef = doc(db, "conversations", convId);
-        const convSnap = await getDoc(convRef);
-        if (!convSnap.exists()) {
-          await setDoc(convRef, {
-            participants: [user.uid, latestRequest.requesterId],
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
-        }
 
         await addDoc(collection(db, "conversations", convId, "messages"), {
           senderId: user.uid,

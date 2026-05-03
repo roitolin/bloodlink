@@ -16,19 +16,21 @@ import {
   addDoc,
   serverTimestamp,
   doc,
-  getDoc,
-  setDoc,
   updateDoc,
   arrayRemove,
 } from "firebase/firestore";
 import { db } from "../../services/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
 import { useResponsive } from "../../utils/responsive";
-import { getConversationId } from "../../utils/chatHelpers";
+import { ensureConversationForUsers } from "../../utils/chatHelpers";
+import { consumeRateLimit, isRateLimitError } from "../../utils/rateLimiter";
+import { hasSuspiciousPayload, sanitizePlainText } from "../../utils/inputSecurity";
+import { getAdminId } from "../../utils/adminConfig";
 
-// Replace with your actual support/admin details.
-const ADMIN_UID = "x1Q4PbL1YVU2Qjxyu6fPXpcjh0t2";
 const SUPPORT_PHONE = "+639123456789";
+const isPermissionDeniedError = (error: any) =>
+  error?.code === "permission-denied" ||
+  /missing or insufficient permissions/i.test(String(error?.message || ""));
 
 export default function ContactScreen({ navigation }: any) {
   const { user } = useAuth();
@@ -39,96 +41,158 @@ export default function ContactScreen({ navigation }: any) {
   const { isDesktop } = useResponsive();
 
   const ensureSupportConversation = async () => {
-    const conversationId = getConversationId(user!.uid, ADMIN_UID);
-    const convRef = doc(db, "conversations", conversationId);
-    const convSnap = await getDoc(convRef);
-
-    if (!convSnap.exists()) {
-      await setDoc(convRef, {
-        participants: [user!.uid, ADMIN_UID],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+    if (!user?.uid) {
+      throw new Error("Please log in again before contacting support.");
+    }
+    const adminUserId = await getAdminId({
+      excludeUserId: user.uid,
+      allowExcludedFallback: true,
+    });
+    if (!adminUserId) {
+      throw new Error("Support chat is unavailable because no admin support account is configured yet.");
     }
 
-    return { conversationId, convRef };
+    const conversationId = await ensureConversationForUsers(db, user.uid, adminUserId);
+    const convRef = doc(db, "conversations", conversationId);
+
+    return { conversationId, convRef, adminUserId };
   };
 
   const handleCall = async () => {
-    const url = `tel:${SUPPORT_PHONE}`;
-    const canOpen = await Linking.canOpenURL(url);
-    if (!canOpen) {
+    const url = `tel:${SUPPORT_PHONE.replace(/\s+/g, "")}`;
+    try {
+      await Linking.openURL(url);
+    } catch {
       Alert.alert("Unavailable", "Calling is not available on this device.");
-      return;
     }
-    await Linking.openURL(url);
   };
 
   const handleSms = async () => {
-    const url = `sms:${SUPPORT_PHONE}?body=${encodeURIComponent(
-      "Hello Support Team, I need help with BloodLink."
+    const url = `sms:${SUPPORT_PHONE.replace(/\s+/g, "")}?body=${encodeURIComponent(
+      "Hello Support Team, I need help with LifeCycle."
     )}`;
-    const canOpen = await Linking.canOpenURL(url);
-    if (!canOpen) {
+    try {
+      await Linking.openURL(url);
+    } catch {
       Alert.alert("Unavailable", "SMS is not available on this device.");
-      return;
     }
-    await Linking.openURL(url);
   };
 
   const handleOpenChat = async () => {
     try {
-      const { conversationId } = await ensureSupportConversation();
+      const { conversationId, adminUserId } = await ensureSupportConversation();
       navigation.navigate("SupportChat", {
         conversationId,
-        otherUserId: ADMIN_UID,
+        otherUserId: adminUserId,
       });
     } catch (error: any) {
+      if (isPermissionDeniedError(error)) {
+        Alert.alert(
+          "Support Chat Unavailable",
+          "Live chat is temporarily unavailable because your account could not open the assigned support conversation. You can still send your concern below and our support team will receive it."
+        );
+        return;
+      }
       Alert.alert("Error", error?.message || "Failed to open support chat.");
     }
   };
 
   const handleSubmit = async () => {
-    if (!subject.trim() || !message.trim()) {
+    if (!user?.uid) {
+      Alert.alert("Session Ended", "Please log in again before sending a support message.");
+      return;
+    }
+
+    const safeSubject = sanitizePlainText(subject, 120);
+    const safeMessage = sanitizePlainText(message, 1200);
+
+    if (!safeSubject || !safeMessage) {
       Alert.alert("Error", "Please fill in both subject and message.");
+      return;
+    }
+    if (hasSuspiciousPayload(safeSubject) || hasSuspiciousPayload(safeMessage)) {
+      Alert.alert("Blocked", "Your message contains unsafe text patterns. Please revise and try again.");
       return;
     }
 
     setLoading(true);
     try {
-      const { conversationId, convRef } = await ensureSupportConversation();
+      await consumeRateLimit(db, user.uid, "support_message");
+
+      const { conversationId, convRef, adminUserId } = await ensureSupportConversation();
+      const messageText = `${safeSubject}\n\n${safeMessage}`;
+      const previewText = `${safeSubject}: ${safeMessage.substring(0, 50)}${safeMessage.length > 50 ? "..." : ""}`;
+      const notificationBody = `${safeSubject}: ${safeMessage.substring(0, 100)}${safeMessage.length > 100 ? "..." : ""}`;
 
       await addDoc(collection(db, "conversations", conversationId, "messages"), {
-        senderId: user!.uid,
-        text: `${subject}\n\n${message}`,
+        senderId: user.uid,
+        text: messageText,
         timestamp: serverTimestamp(),
+        readBy: [user.uid],
       });
 
-      await updateDoc(convRef, {
-        lastMessage: {
-          text: `${subject}: ${message.substring(0, 50)}${message.length > 50 ? "..." : ""}`,
-          senderId: user!.uid,
-          timestamp: serverTimestamp(),
-        },
-        hiddenFor: arrayRemove(user!.uid, ADMIN_UID),
-        updatedAt: serverTimestamp(),
-      });
+      const settled = await Promise.allSettled([
+        updateDoc(convRef, {
+          lastMessage: {
+            text: previewText,
+            senderId: user.uid,
+            timestamp: serverTimestamp(),
+            readBy: [user.uid],
+          },
+          hiddenFor: arrayRemove(user.uid, adminUserId),
+          updatedAt: serverTimestamp(),
+        }),
+        addDoc(collection(db, "notifications"), {
+          userId: adminUserId,
+          type: "support_message",
+          title: `New Support Message from ${user?.email}`,
+          body: notificationBody,
+          read: false,
+          createdAt: serverTimestamp(),
+          data: { conversationId, otherUserId: user.uid },
+        }),
+      ]);
 
-      await addDoc(collection(db, "notifications"), {
-        userId: ADMIN_UID,
-        type: "support_message",
-        title: `New Support Message from ${user?.email}`,
-        body: `${subject}: ${message.substring(0, 100)}${message.length > 100 ? "..." : ""}`,
-        read: false,
-        createdAt: serverTimestamp(),
-        data: { conversationId, otherUserId: user!.uid },
+      settled.forEach((result) => {
+        if (result.status === "rejected" && !isPermissionDeniedError(result.reason)) {
+          console.warn("Support follow-up write failed:", result.reason);
+        }
       });
 
       setSubject("");
       setMessage("");
       setSuccessDialogVisible(true);
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      if (isRateLimitError(error)) {
+        Alert.alert("Slow down", `Please wait ${error.retryAfterSeconds}s before sending another support message.`);
+        return;
+      }
+
+      if (isPermissionDeniedError(error)) {
+        try {
+          await addDoc(collection(db, "supportMessages"), {
+            userId: user.uid,
+            email: user.email || null,
+            subject: safeSubject,
+            message: safeMessage,
+            read: false,
+            status: "open",
+            createdAt: serverTimestamp(),
+            channel: "contact_fallback",
+          });
+          setSubject("");
+          setMessage("");
+          Alert.alert(
+            "Message Sent",
+            "Your message was sent via fallback support channel. Our team will still receive and review it."
+          );
+          return;
+        } catch (fallbackError: any) {
+          console.error("Fallback support message failed:", fallbackError);
+        }
+      }
+
+      Alert.alert("Error", "Unable to send your support message right now. Please try again shortly.");
     } finally {
       setLoading(false);
     }

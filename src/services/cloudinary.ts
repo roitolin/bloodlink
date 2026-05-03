@@ -1,19 +1,36 @@
 import * as ImageManipulator from 'expo-image-manipulator';
 import axios from 'axios';
 
-// 🔁 Your Cloudinary credentials
-const CLOUD_NAME = 'dqnsnt7pg';
-const UPLOAD_PRESET = 'bloodlink_profile_preset';
+const CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const DEFAULT_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+const PROFILE_UPLOAD_PRESET =
+  process.env.EXPO_PUBLIC_CLOUDINARY_PROFILE_UPLOAD_PRESET || DEFAULT_UPLOAD_PRESET;
+const CERTIFICATE_UPLOAD_PRESET =
+  process.env.EXPO_PUBLIC_CLOUDINARY_CERTIFICATE_UPLOAD_PRESET || DEFAULT_UPLOAD_PRESET;
+const EVIDENCE_UPLOAD_PRESET =
+  process.env.EXPO_PUBLIC_CLOUDINARY_EVIDENCE_UPLOAD_PRESET || DEFAULT_UPLOAD_PRESET;
 
-// Separate folders for different types of uploads
-const PROFILE_FOLDER = 'bloodlink_profiles';
-const CERTIFICATE_FOLDER = 'bloodlink_certificates';
-const EVIDENCE_FOLDER = 'bloodlink_report_evidence';
+const PROFILE_FOLDER =
+  process.env.EXPO_PUBLIC_CLOUDINARY_PROFILE_FOLDER || 'bloodlink_profiles';
+const CERTIFICATE_FOLDER =
+  process.env.EXPO_PUBLIC_CLOUDINARY_CERTIFICATE_FOLDER || 'bloodlink_certificates';
+const EVIDENCE_FOLDER =
+  process.env.EXPO_PUBLIC_CLOUDINARY_EVIDENCE_FOLDER || 'bloodlink_report_evidence';
+
+if (!CLOUD_NAME || !PROFILE_UPLOAD_PRESET || !CERTIFICATE_UPLOAD_PRESET || !EVIDENCE_UPLOAD_PRESET) {
+  throw new Error(
+    "Missing required Cloudinary environment variables. Check .env and EXPO_PUBLIC_CLOUDINARY_* values."
+  );
+}
 
 /**
- * Internal function – uploads an image to Cloudinary into the specified folder
+ * Internal function – uploads an image to Cloudinary into the specified folder/preset
  */
-const uploadToCloudinary = async (uri: string, folder: string): Promise<string> => {
+const uploadToCloudinary = async (
+  uri: string,
+  folder: string,
+  uploadPreset: string
+): Promise<string> => {
   try {
     // 1. Compress and resize the image
     const manipulatedImage = await ImageManipulator.manipulateAsync(
@@ -29,7 +46,7 @@ const uploadToCloudinary = async (uri: string, folder: string): Promise<string> 
       type: 'image/jpeg',
       name: 'upload.jpg',
     } as any);
-    formData.append('upload_preset', UPLOAD_PRESET);
+    formData.append('upload_preset', uploadPreset);
     formData.append('folder', folder);
 
     // 3. Upload
@@ -47,6 +64,9 @@ const uploadToCloudinary = async (uri: string, folder: string): Promise<string> 
 };
 
 // Public functions – use these in your components
-export const uploadProfilePicture = (uri: string) => uploadToCloudinary(uri, PROFILE_FOLDER);
-export const uploadCertificate = (uri: string) => uploadToCloudinary(uri, CERTIFICATE_FOLDER);
-export const uploadReportEvidence = (uri: string) => uploadToCloudinary(uri, EVIDENCE_FOLDER);
+export const uploadProfilePicture = (uri: string) =>
+  uploadToCloudinary(uri, PROFILE_FOLDER, PROFILE_UPLOAD_PRESET);
+export const uploadCertificate = (uri: string) =>
+  uploadToCloudinary(uri, CERTIFICATE_FOLDER, CERTIFICATE_UPLOAD_PRESET);
+export const uploadReportEvidence = (uri: string) =>
+  uploadToCloudinary(uri, EVIDENCE_FOLDER, EVIDENCE_UPLOAD_PRESET);

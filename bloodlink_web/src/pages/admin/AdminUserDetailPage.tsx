@@ -20,6 +20,7 @@ type UserDetail = {
   donorStatus?: string
   availabilityStatus?: string
   medicalCertificateURL?: string
+  validIdURL?: string
   createdAt?: TimestampLike
 }
 
@@ -161,11 +162,18 @@ function AdminUserDetailPage() {
             </div>
           </div>
 
-          {item.medicalCertificateURL ? (
+          {item.medicalCertificateURL || item.validIdURL ? (
             <div className="quick-actions">
-              <a className="ghost-btn btn-link" href={item.medicalCertificateURL} target="_blank" rel="noreferrer">
-                Open Medical Certificate
-              </a>
+              {item.medicalCertificateURL ? (
+                <a className="ghost-btn btn-link" href={item.medicalCertificateURL} target="_blank" rel="noreferrer">
+                  Open Medical Certificate
+                </a>
+              ) : null}
+              {item.validIdURL ? (
+                <a className="ghost-btn btn-link" href={item.validIdURL} target="_blank" rel="noreferrer">
+                  Open Valid ID
+                </a>
+              ) : null}
             </div>
           ) : null}
 

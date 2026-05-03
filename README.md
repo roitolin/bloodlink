@@ -1,6 +1,7 @@
-# BloodLink
+# LifeCycle
 
-BloodLink is a blood donation coordination system with:
+LifeCycle is a blood donation coordination system with:
+
 - Mobile app (Expo + React Native)
 - Web app (Vite + React)
 - Firebase backend (Auth + Firestore)
@@ -92,6 +93,7 @@ npx expo start
 ```
 
 Optional:
+
 - `npm run android`
 - `npm run ios`
 
@@ -122,9 +124,14 @@ Default dev URL is usually `http://localhost:5175`.
 
 ## Environment Notes
 
-- `.env.example` is included as a placeholder.
-- Current setup does not require additional API keys for OpenStreetMap mode.
-- Firebase config is currently set in project source files.
+- Copy `.env.example` to `.env` and fill all Firebase values before running.
+- For web, you can also copy `bloodlink_web/.env.example` to `bloodlink_web/.env`.
+- Firebase and Cloudinary config are loaded from environment variables (no hardcoded values in source).
+- OpenStreetMap endpoints used in the app do not require a private API key.
+
+## Security Notes
+
+- Security documentation has been moved to [`Security/`](Security/README.md).
 
 ## Team
 

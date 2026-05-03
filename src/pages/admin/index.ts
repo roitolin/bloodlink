@@ -5,6 +5,7 @@ export { default as AdminAnnouncementsScreen } from "@/screens/admin/AdminAnnoun
 export { default as AdminAuditLogsScreen } from "@/screens/admin/AdminAuditLogsScreen";
 export { default as AdminDashboard } from "@/screens/admin/AdminDashboard";
 export { default as AdminDonorVerificationsScreen } from "@/screens/admin/AdminDonorVerificationsScreen";
+export { default as AdminFuneralShopVerificationsScreen } from "@/screens/admin/AdminFuneralShopVerificationsScreen";
 export { default as AdminManagementScreen } from "@/screens/admin/AdminManagementScreen";
 export { default as AdminModerationScreen } from "@/screens/admin/AdminModerationScreen";
 export { default as AdminMoreScreen } from "@/screens/admin/AdminMoreScreen";

@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
+import { clearLoginAttempts, getLoginBlockState, recordFailedLoginAttempt } from '@/utils/authAttemptGuard'
+import { normalizeEmail } from '@/utils/inputSecurity'
 
 type BanDialog = {
   reason: string
@@ -34,7 +36,7 @@ function toDate(value: unknown): Date | null {
 
 function getLoginErrorMessage(errorCode: string): string {
   if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/user-not-found') {
-    return 'Email not found. Please register this account first.'
+    return "We couldn't find an account with that email. Please check for typos or sign up first."
   }
   if (errorCode === 'auth/wrong-password') {
     return 'Incorrect password. Please try again.'
@@ -65,6 +67,13 @@ function LoginPage() {
   const [error, setError] = useState('')
   const [banDialog, setBanDialog] = useState<BanDialog | null>(null)
 
+  useEffect(() => {
+    const state = location.state as { banDialog?: BanDialog } | null
+    if (state?.banDialog) {
+      setBanDialog(state.banDialog)
+    }
+  }, [location.state])
+
   const infoMessage = useMemo(() => {
     const search = new URLSearchParams(location.search)
     if (search.get('registered') === '1') return 'Registration successful. Check your email to verify your account.'
@@ -86,7 +95,7 @@ function LoginPage() {
   }
 
   const openSupportChannel = (channel: 'contact' | 'report') => {
-    const subject = channel === 'contact' ? 'BloodLink Login Help' : 'BloodLink Report Login Issue'
+    const subject = channel === 'contact' ? 'LifeCycle Login Help' : 'LifeCycle Report Login Issue'
     const body =
       channel === 'contact'
         ? `I need help logging in.\nEmail: ${email || '(not provided)'}\nIssue: `
@@ -98,8 +107,16 @@ function LoginPage() {
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (!email.trim() || !password.trim()) {
+    const normalizedEmail = normalizeEmail(email)
+
+    if (!normalizedEmail || !password.trim()) {
       setError('Please fill in all fields.')
+      return
+    }
+
+    const blockState = getLoginBlockState(normalizedEmail)
+    if (blockState.blocked) {
+      setError(`Too many attempts. Please wait ${blockState.retryAfterSeconds}s before trying again.`)
       return
     }
 
@@ -107,19 +124,29 @@ function LoginPage() {
     setLoading(true)
 
     try {
-      const credential = await signInWithEmailAndPassword(auth, email.trim(), password)
+      const credential = await signInWithEmailAndPassword(auth, normalizedEmail, password)
       const userDocRef = doc(db, 'users', credential.user.uid)
       const userDoc = await getDoc(userDocRef)
 
       if (!userDoc.exists()) {
         await signOut(auth)
+        recordFailedLoginAttempt(normalizedEmail)
         setError('Profile not found for this account. Please contact support.')
         return
       }
 
       const userData = userDoc.data() as UserDoc
       const userRole = String(userData.role || 'user').toLowerCase()
-      const defaultRedirect = userRole === 'admin' ? '/admin' : '/app'
+      const defaultRedirect =
+        userRole === 'super_admin'
+          ? '/admin/dashboard'
+          : userRole === 'blood_admin'
+          ? '/admin/donors'
+          : userRole === 'funeral_admin'
+            ? '/admin/funeral-shops'
+            : userRole === 'admin'
+              ? '/admin'
+              : '/app'
       const targetAfterLogin = redirectAfterLogin || defaultRedirect
       const disabled = Boolean(userData.disabled)
       const banReason = userData.banReason?.trim() || 'No reason provided by admin.'
@@ -140,6 +167,7 @@ function LoginPage() {
 
       if (disabled) {
         await signOut(auth)
+        recordFailedLoginAttempt(normalizedEmail)
         setBanDialog({
           reason: banReason,
           banEndsLabel: hasValidBanEnd ? bannedUntil.toLocaleString() : 'No end date (permanent)',
@@ -153,8 +181,10 @@ function LoginPage() {
         return
       }
 
+      clearLoginAttempts(normalizedEmail)
       navigate(targetAfterLogin)
     } catch (caughtError) {
+      recordFailedLoginAttempt(normalizedEmail)
       const errorCode =
         typeof caughtError === 'object' && caughtError !== null && 'code' in caughtError
           ? String(caughtError.code)

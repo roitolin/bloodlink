@@ -2,6 +2,8 @@ export { default as AboutUsPage } from "./AboutUsPage";
 export { default as ContactSupportPage } from "./ContactSupportPage";
 export { default as CreateRequestPage } from "./CreateRequestPage";
 export { default as DashboardPage } from "./DashboardPage";
+export { default as DonorDetailPage } from "./DonorDetailPage";
+export { default as DonorApplicationPage } from "./DonorApplicationPage";
 export { default as DonationHistoryPage } from "./DonationHistoryPage";
 export { default as FeedbackPage } from "./FeedbackPage";
 export { default as HowToDonatePage } from "./HowToDonatePage";

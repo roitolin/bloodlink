@@ -39,10 +39,25 @@ function urgencyClass(urgency: string | undefined) {
   return 'normal'
 }
 
+function timeLeftLabel(expiresAt: BroadcastRecord['expiresAt']) {
+  const expiryDate = toDate(expiresAt)
+  if (!expiryDate) return 'No expiry set'
+  const remainingMs = expiryDate.getTime() - Date.now()
+  if (remainingMs <= 0) return 'Expired'
+  const minutes = Math.floor(remainingMs / 60000)
+  if (minutes < 60) return `${minutes}m left`
+  const hours = Math.floor(minutes / 60)
+  const remMinutes = minutes % 60
+  if (hours < 24) return remMinutes === 0 ? `${hours}h left` : `${hours}h ${remMinutes}m left`
+  const days = Math.floor(hours / 24)
+  const remHours = hours % 24
+  return remHours === 0 ? `${days}d left` : `${days}d ${remHours}h left`
+}
+
 function EmergencyBroadcastBoard({
   viewerCity = '',
   viewerBloodType = '',
-  limit = 3,
+  limit = 2,
   title = 'Emergency Broadcasts',
 }: Props) {
   const [items, setItems] = useState<BroadcastRecord[]>([])
@@ -78,21 +93,34 @@ function EmergencyBroadcastBoard({
 
   return (
     <article className="panel feed-block emergency-card">
-      <h3>{title}</h3>
-      <div className="notification-list">
+      <header className="emergency-card-head">
+        <h3>{title}</h3>
+        <span className="emergency-live-pill">Live: {visibleItems.length}</span>
+      </header>
+      <p className="emergency-card-sub">
+        Priority alerts relevant to your location and blood type.
+      </p>
+      <div className="notification-list emergency-list">
         {visibleItems.map((item) => (
-          <article key={item.id} className="notification-item">
-            <h3>
+          <article key={item.id} className="notification-item emergency-item">
+            <header className="emergency-item-head">
               <span className={`status-pill ${urgencyClass(item.urgency)}`}>
                 {item.urgency || 'Emergency'}
               </span>
-            </h3>
-            <p>{item.message || 'Emergency alert posted.'}</p>
-            <span>
-              {item.targetCity ? `City: ${item.targetCity}` : 'Nationwide'}
-              {item.targetBloodType ? ` | Blood: ${item.targetBloodType}` : ''}
-              {toDate(item.expiresAt) ? ` | Until ${toDate(item.expiresAt)?.toLocaleString()}` : ''}
-            </span>
+              <span className="emergency-time-pill">{timeLeftLabel(item.expiresAt)}</span>
+            </header>
+            <p className="emergency-message">{item.message || 'Emergency alert posted.'}</p>
+            <div className="emergency-meta-row">
+              <span className="emergency-meta-pill">
+                {item.targetCity ? `City: ${item.targetCity}` : 'Coverage: Nationwide'}
+              </span>
+              {item.targetBloodType ? (
+                <span className="emergency-meta-pill">Blood: {item.targetBloodType}</span>
+              ) : null}
+              {toDate(item.expiresAt) ? (
+                <span className="emergency-meta-pill">Until {toDate(item.expiresAt)?.toLocaleString()}</span>
+              ) : null}
+            </div>
           </article>
         ))}
       </div>

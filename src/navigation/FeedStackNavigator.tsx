@@ -35,7 +35,7 @@ export default function FeedStackNavigator() {
           headerTitle: () => (
             <View style={styles.brandWrap}>
               <Image source={require("../../assets/Logo.png")} style={styles.brandLogo} />
-              <Text style={styles.brandText}>BloodLink</Text>
+              <Text style={styles.brandText}>LifeCycle</Text>
             </View>
           ),
           headerRight: () => (

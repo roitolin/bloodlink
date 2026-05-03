@@ -37,10 +37,12 @@ type Donor = {
   donorStatus?: "none" | "pending" | "verified" | "rejected";
   donorVerificationRejectionReason?: string | null;
   medicalCertificateURL?: string;
+  validIdURL?: string;
   photoURL?: string;
 };
 
 type FilterType = "all" | "pending" | "verified" | "rejected";
+const ALLOWED_DONOR_STATUSES = new Set<NonNullable<Donor["donorStatus"]>>(["pending", "verified", "rejected"]);
 
 export default function AdminAllDonorsScreen() {
   const navigation = useNavigation<any>();
@@ -86,8 +88,9 @@ export default function AdminAllDonorsScreen() {
         id: doc.id,
         ...doc.data(),
       })) as Donor[];
-      setDonors(list);
-      applyFilters(list, searchQuery, filterType);
+      const eligibleDonors = list.filter((item) => ALLOWED_DONOR_STATUSES.has(item.donorStatus as NonNullable<Donor["donorStatus"]>));
+      setDonors(eligibleDonors);
+      applyFilters(eligibleDonors, searchQuery, filterType);
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to load donors.");
@@ -219,6 +222,7 @@ export default function AdminAllDonorsScreen() {
                 city: null,
                 street: null,
                 medicalCertificateURL: null,
+                validIdURL: null,
                 donorStatus: "none",
                 donorVerificationRejectionReason: null,
                 availabilityStatus: null,

@@ -1,12 +1,22 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc, where, writeBatch } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
+
+type NotificationPayload = {
+  requestId?: string
+  conversationId?: string
+  otherUserId?: string
+  userId?: string
+  [key: string]: unknown
+}
 
 type NotificationItem = {
   id: string
   title?: string
   body?: string
   type?: string
+  data?: NotificationPayload | null
   read?: boolean
   createdAt?: { toDate?: () => Date } | string | null
 }
@@ -22,9 +32,11 @@ function formatDate(value: NotificationItem['createdAt']) {
 }
 
 function NotificationsPage() {
+  const navigate = useNavigate()
   const [items, setItems] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const lastRefreshTapRef = useRef(0)
 
   const load = async () => {
     const user = auth.currentUser
@@ -107,6 +119,55 @@ function NotificationsPage() {
     }
   }
 
+  const openNotification = async (item: NotificationItem) => {
+    if (!item.read) {
+      await markAsRead(item.id)
+    }
+
+    const data = item.data || {}
+    const type = String(item.type || '')
+    if (type === 'request_pending' || type === 'request_accepted' || type === 'request_completed') {
+      if (typeof data.requestId === 'string' && data.requestId.trim()) {
+        navigate(`/app/my-requests/${encodeURIComponent(data.requestId)}`)
+        return
+      }
+      navigate('/app/my-requests')
+      return
+    }
+
+    if (type === 'donor_approved' || type === 'donor_rejected') {
+      navigate('/app/profile')
+      return
+    }
+
+    if (type === 'support_message') {
+      const params = new URLSearchParams()
+      params.set('openMessages', '1')
+      if (typeof data.conversationId === 'string' && data.conversationId.trim()) {
+        params.set('conversation', data.conversationId)
+      }
+      if (typeof data.otherUserId === 'string' && data.otherUserId.trim()) {
+        params.set('otherUserId', data.otherUserId)
+      }
+      navigate(`/app?${params.toString()}`)
+      return
+    }
+
+    if (type === 'announcement_new' || type === 'emergency_broadcast') {
+      navigate('/app')
+    }
+  }
+
+  const handleDoubleTapRefresh = () => {
+    const now = Date.now()
+    if (now - lastRefreshTapRef.current <= 420) {
+      lastRefreshTapRef.current = 0
+      void load()
+      return
+    }
+    lastRefreshTapRef.current = now
+  }
+
   return (
     <section className="panel">
       <h2>Notifications</h2>
@@ -123,8 +184,8 @@ function NotificationsPage() {
           <button type="button" className="ghost-btn table-action" onClick={() => void deleteRead()}>
             Delete read
           </button>
-          <button type="button" className="ghost-btn table-action" onClick={() => void load()}>
-            Refresh
+          <button type="button" className="ghost-btn table-action" onClick={handleDoubleTapRefresh} title="Double-tap to refresh notifications">
+            Refresh x2
           </button>
         </div>
       </div>
@@ -143,6 +204,9 @@ function NotificationsPage() {
             <div className="notification-foot-row">
               <span>{formatDate(item.createdAt)}</span>
               <div className="request-actions">
+                <button type="button" className="ghost-btn table-action" onClick={() => void openNotification(item)}>
+                  Open
+                </button>
                 {!item.read ? (
                   <button type="button" className="ghost-btn table-action" onClick={() => void markAsRead(item.id)}>
                     Mark as read

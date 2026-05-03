@@ -34,6 +34,7 @@ type PendingUser = {
   city?: string;
   street?: string;
   medicalCertificateURL?: string;
+  validIdURL?: string;
   donorVerificationRequestedAt?: any;
 };
 
@@ -184,6 +185,20 @@ export default function AdminDonorVerificationsScreen() {
                   </TouchableOpacity>
                 ) : (
                   <Text>No certificate uploaded</Text>
+                )}
+                <Text style={styles.label}>Valid ID:</Text>
+                {selectedUser.validIdURL ? (
+                  <TouchableOpacity
+                    onPress={() => Linking.openURL(selectedUser.validIdURL!)}
+                    style={styles.certLink}
+                  >
+                    <Ionicons name="card-outline" size={24} color={theme.colors.primary} />
+                    <Text style={[styles.certText, { color: theme.colors.primary }]}>
+                      View Valid ID
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text>No valid ID uploaded</Text>
                 )}
                 <TextInput
                   placeholder="Rejection reason (if rejecting)"

@@ -64,7 +64,7 @@ function AdminDashboardPage() {
   }, [])
 
   const metrics = useMemo(() => {
-    const nonAdminUsers = users.filter((item) => normalize(item.role) !== 'admin')
+    const nonAdminUsers = users.filter((item) => !normalize(item.role).includes('admin'))
     const availableDonors = users.filter((item) => normalize(item.availabilityStatus) === 'available').length
     const pendingDonorVerifications = users.filter((item) => normalize(item.donorStatus) === 'pending').length
     const openRequests = requests.filter((item) => {

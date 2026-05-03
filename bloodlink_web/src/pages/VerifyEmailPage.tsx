@@ -7,6 +7,9 @@ import { auth, db } from '@/lib/firebase'
 const VERIFICATION_WINDOW_MS = 30 * 60 * 1000
 
 function getRoleRedirect(role: string) {
+  if (role === 'super_admin') return '/admin/dashboard'
+  if (role === 'blood_admin') return '/admin/donors'
+  if (role === 'funeral_admin') return '/admin/funeral-shops'
   return role === 'admin' ? '/admin' : '/app'
 }
 

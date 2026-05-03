@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { addDoc, collection, getDocs, limit, orderBy, query, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
 import type { FirestoreDoc, TimestampLike } from '@/types/firestore'
@@ -195,6 +195,7 @@ function AdminAnalyticsPage() {
   const [exportHistory, setExportHistory] = useState<ExportHistoryItem[]>([])
   const [exportSnapshot, setExportSnapshot] = useState<ExportSnapshot>({ requests: [] })
   const [urgencyBreakdown, setUrgencyBreakdown] = useState<{ label: string; value: number }[]>([])
+  const lastRefreshTapRef = useRef(0)
 
   const recordExport = async (format: 'csv' | 'pdf', days: number, requestCount: number) => {
     const adminId = auth.currentUser?.uid || null
@@ -366,6 +367,16 @@ function AdminAnalyticsPage() {
     void load()
   }, [])
 
+  const handleDoubleTapRefresh = () => {
+    const now = Date.now()
+    if (now - lastRefreshTapRef.current <= 420) {
+      lastRefreshTapRef.current = 0
+      void load()
+      return
+    }
+    lastRefreshTapRef.current = now
+  }
+
   const buildExportRecords = (days: number) => {
     const start = new Date()
     start.setHours(0, 0, 0, 0)
@@ -400,7 +411,7 @@ function AdminAnalyticsPage() {
   const exportCsv = async (days: number) => {
     const { start, requests, summary } = buildExportRecords(days)
     const lines = [
-      'BloodLink Analytics Export',
+      'LifeCycle Analytics Export',
       `Period,${escapeCsv(`${start.toLocaleDateString()} to ${new Date().toLocaleDateString()}`)}`,
       `Generated At,${escapeCsv(new Date().toLocaleString())}`,
       '',
@@ -461,7 +472,7 @@ function AdminAnalyticsPage() {
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>BloodLink Analytics Export</title>
+          <title>LifeCycle Analytics Export</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; color: #111827; }
             h1 { color: #b91c1c; margin: 0 0 8px 0; }
@@ -472,7 +483,7 @@ function AdminAnalyticsPage() {
           </style>
         </head>
         <body>
-          <h1>BloodLink Analytics (${days === 7 ? 'Weekly' : 'Monthly'})</h1>
+          <h1>LifeCycle Analytics (${days === 7 ? 'Weekly' : 'Monthly'})</h1>
           <div class="meta">Period: ${start.toLocaleDateString()} to ${new Date().toLocaleDateString()}</div>
           <div class="meta">Generated: ${new Date().toLocaleString()}</div>
           <table>
@@ -529,7 +540,7 @@ function AdminAnalyticsPage() {
       {lastUpdated ? <p className="panel-sub">Updated: {lastUpdated.toLocaleString()}</p> : null}
 
       <div className="quick-actions">
-        <button type="button" className="ghost-btn" onClick={() => void load()}>Refresh</button>
+        <button type="button" className="ghost-btn" onClick={handleDoubleTapRefresh} title="Double-tap to refresh analytics">Refresh x2</button>
         <button type="button" className="solid-btn" onClick={() => exportCsv(7)}>Weekly CSV</button>
         <button type="button" className="ghost-btn" onClick={() => exportPdf(7)}>Weekly PDF</button>
         <button type="button" className="solid-btn" onClick={() => exportCsv(30)}>Monthly CSV</button>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   FlatList,
@@ -46,7 +46,7 @@ type Notification = {
   createdAt: any;
 };
 
-export default function NotificationsScreen({ navigation }: any) {
+export default function NotificationsScreen({ navigation, route }: any) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,6 +54,7 @@ export default function NotificationsScreen({ navigation }: any) {
   const { role } = useAuth();
   const { isDesktop } = useResponsive();
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const lastRefreshTokenRef = useRef<number | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!currentUserId) return;
@@ -82,6 +83,14 @@ export default function NotificationsScreen({ navigation }: any) {
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
+
+  useEffect(() => {
+    const refreshToken = route?.params?.refreshToken;
+    if (!refreshToken || refreshToken === lastRefreshTokenRef.current) return;
+    lastRefreshTokenRef.current = refreshToken;
+    setRefreshing(true);
+    void fetchNotifications();
+  }, [fetchNotifications, route?.params?.refreshToken]);
 
   const markAsRead = async (id: string) => {
     try {
@@ -339,7 +348,13 @@ export default function NotificationsScreen({ navigation }: any) {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={fetchNotifications} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              void fetchNotifications();
+            }}
+          />
         }
         ListEmptyComponent={
           <Text style={styles.empty}>No notifications</Text>

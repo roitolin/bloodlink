@@ -451,7 +451,7 @@ export default function AdminAnalyticsScreen() {
     try {
       const { start, requests, summary } = buildExportRecords(days);
       const lines = [
-        "BloodLink Analytics Export",
+        "LifeCycle Analytics Export",
         `Period,${escapeCsv(`${start.toLocaleDateString()} to ${new Date().toLocaleDateString()}`)}`,
         `Generated At,${escapeCsv(new Date().toLocaleString())}`,
         "",
@@ -538,7 +538,7 @@ export default function AdminAnalyticsScreen() {
             </style>
           </head>
           <body>
-            <h1>BloodLink Analytics (${days === 7 ? "Weekly" : "Monthly"})</h1>
+            <h1>LifeCycle Analytics (${days === 7 ? "Weekly" : "Monthly"})</h1>
             <div class="meta">Period: ${start.toLocaleDateString()} to ${new Date().toLocaleDateString()}</div>
             <div class="meta">Generated: ${new Date().toLocaleString()}</div>
 

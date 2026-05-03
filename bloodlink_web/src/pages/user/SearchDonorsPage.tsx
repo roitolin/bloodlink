@@ -172,6 +172,7 @@ function SearchDonorsPage() {
   const [centerLocation, setCenterLocation] = useState<{ latitude: number; longitude: number } | null>(null)
   const [requesterProfile, setRequesterProfile] = useState<RequesterProfile | null>(null)
   const [cooldownHiddenCount, setCooldownHiddenCount] = useState(0)
+  const [requestDonor, setRequestDonor] = useState<Donor | null>(null)
   const citySuggestions = getPhilippinePlaceSuggestions(cityFilter, 12)
 
   useEffect(() => {
@@ -449,7 +450,10 @@ function SearchDonorsPage() {
               ) : null}
 
               <div className="request-actions">
-                <button type="button" className="solid-btn" onClick={() => openCreateRequestWithDonor(item)}>
+                <button type="button" className="ghost-btn" onClick={() => navigate(`/app/donors/${item.id}`)}>
+                  View Details
+                </button>
+                <button type="button" className="solid-btn" onClick={() => setRequestDonor(item)}>
                   Request Blood
                 </button>
               </div>
@@ -479,6 +483,44 @@ function SearchDonorsPage() {
 
         {!loading && items.length === 0 ? <p className="panel-sub">No donors matched your filters.</p> : null}
       </div>
+
+      {requestDonor ? (
+        <div className="info-modal-overlay" role="presentation" onClick={() => setRequestDonor(null)}>
+          <div
+            className="info-modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="search-request-confirm-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="info-modal-head">
+              <h3 id="search-request-confirm-title">Create Request</h3>
+              <button type="button" className="ghost-btn info-modal-close" onClick={() => setRequestDonor(null)}>
+                Close
+              </button>
+            </div>
+            <div className="info-modal-body">
+              <p>{`Use ${requestDonor.fullName || requestDonor.email || 'this donor'} as the selected donor for a new blood request?`}</p>
+              <div className="quick-actions">
+                <button type="button" className="ghost-btn" onClick={() => setRequestDonor(null)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="solid-btn"
+                  onClick={() => {
+                    const donor = requestDonor
+                    setRequestDonor(null)
+                    if (donor) openCreateRequestWithDonor(donor)
+                  }}
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

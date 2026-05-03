@@ -2,39 +2,46 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { updateProfile } from 'firebase/auth'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { auth, db, storage } from '@/lib/firebase'
-import { syncPublicCityAvailability } from '../../utils/publicCityAvailability'
 
 type Gender = 'male' | 'female' | 'other' | ''
 type DonorStatus = 'none' | 'pending' | 'verified' | 'rejected'
 type AvailabilityStatus = 'available' | 'unavailable'
-
-const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
 function getDefaultAvatar(gender: Gender) {
   if (gender === 'female') return '/Female_Default_Profile.png'
   return '/Male_Default_Profile.png'
 }
 
+function parseStoredDate(value: unknown): Date | null {
+  if (!value) return null
+  if (typeof value === 'object' && value !== null && 'toDate' in value && typeof value.toDate === 'function') {
+    const dateValue = value.toDate()
+    return dateValue instanceof Date && !Number.isNaN(dateValue.getTime()) ? dateValue : null
+  }
+  const parsed = new Date(String(value))
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 function ProfilePage() {
   const [fullName, setFullName] = useState('')
   const [gender, setGender] = useState<Gender>('')
   const [dateOfBirth, setDateOfBirth] = useState('')
-  const [bloodType, setBloodType] = useState(BLOOD_TYPES[0])
-  const [city, setCity] = useState('')
   const [contactNumber, setContactNumber] = useState('')
   const [photoURL, setPhotoURL] = useState('')
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null)
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState('')
-  const [medicalCertificateURL, setMedicalCertificateURL] = useState('')
+  const [bloodType, setBloodType] = useState('')
+  const [city, setCity] = useState('')
+  const [street, setStreet] = useState('')
   const [donorStatus, setDonorStatus] = useState<DonorStatus>('none')
   const [donorAvailability, setDonorAvailability] = useState<AvailabilityStatus>('unavailable')
+  const [donationCooldownUntil, setDonationCooldownUntil] = useState<Date | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [savingDonor, setSavingDonor] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
@@ -55,13 +62,14 @@ function ProfilePage() {
           setFullName(String(data.fullName || ''))
           setGender((String(data.gender || '') as Gender) || '')
           setDateOfBirth(String(data.dateOfBirth || '').slice(0, 10))
-          setBloodType(String(data.bloodType || BLOOD_TYPES[0]))
-          setCity(String(data.city || ''))
           setContactNumber(String(data.contactNumber || ''))
           setPhotoURL(String(data.photoURL || user.photoURL || ''))
-          setMedicalCertificateURL(String(data.medicalCertificateURL || ''))
+          setBloodType(String(data.bloodType || ''))
+          setCity(String(data.city || ''))
+          setStreet(String(data.street || ''))
           setDonorStatus((String(data.donorStatus || 'none') as DonorStatus) || 'none')
           setDonorAvailability((String(data.availabilityStatus || 'unavailable') as AvailabilityStatus) || 'unavailable')
+          setDonationCooldownUntil(parseStoredDate(data.donationCooldownUntil))
           setRejectionReason(String(data.donorVerificationRejectionReason || ''))
         }
       } finally {
@@ -115,15 +123,12 @@ function ProfilePage() {
           fullName: fullName.trim(),
           gender,
           dateOfBirth,
-          bloodType,
-          city: city.trim(),
           contactNumber: contactNumber.trim(),
           photoURL: nextPhotoURL,
-          updatedAt: new Date(),
+          updatedAt: serverTimestamp(),
         },
         { merge: true },
       )
-      await syncPublicCityAvailability(db)
 
       setPhotoURL(nextPhotoURL)
       setSelectedPhotoFile(null)
@@ -165,89 +170,6 @@ function ProfilePage() {
     setPhotoPreviewUrl(URL.createObjectURL(file))
   }
 
-  const toggleDonorAvailability = async () => {
-    const user = auth.currentUser
-    if (!user) {
-      setError('You must be logged in.')
-      return
-    }
-
-    const next = donorAvailability === 'available' ? 'unavailable' : 'available'
-    setSavingDonor(true)
-    setError('')
-    setMessage('')
-
-    try {
-      await setDoc(
-        doc(db, 'users', user.uid),
-        {
-          availabilityStatus: next,
-          availableSince: next === 'available' ? new Date() : null,
-          updatedAt: new Date(),
-        },
-        { merge: true },
-      )
-      await syncPublicCityAvailability(db)
-
-      setDonorAvailability(next)
-      setMessage(`Donor availability is now ${next === 'available' ? 'ON' : 'OFF'}.`)
-    } catch (caughtError) {
-      const messageText =
-        typeof caughtError === 'object' && caughtError !== null && 'message' in caughtError
-          ? String(caughtError.message)
-          : 'Failed to update donor availability.'
-      setError(messageText)
-    } finally {
-      setSavingDonor(false)
-    }
-  }
-
-  const submitDonorVerification = async () => {
-    const user = auth.currentUser
-    if (!user) {
-      setError('You must be logged in.')
-      return
-    }
-
-    if (!bloodType || !city.trim() || !medicalCertificateURL.trim()) {
-      setError('Please complete blood type, city, and certificate URL before submitting.')
-      return
-    }
-
-    setSavingDonor(true)
-    setError('')
-    setMessage('')
-
-    try {
-      await setDoc(
-        doc(db, 'users', user.uid),
-        {
-          bloodType,
-          city: city.trim(),
-          medicalCertificateURL: medicalCertificateURL.trim(),
-          donorStatus: 'pending',
-          availabilityStatus: 'unavailable',
-          donorVerificationRequestedAt: new Date(),
-          updatedAt: new Date(),
-        },
-        { merge: true },
-      )
-      await syncPublicCityAvailability(db)
-
-      setDonorStatus('pending')
-      setDonorAvailability('unavailable')
-      setMessage('Donor verification request submitted. Please wait for admin review.')
-    } catch (caughtError) {
-      const messageText =
-        typeof caughtError === 'object' && caughtError !== null && 'message' in caughtError
-          ? String(caughtError.message)
-          : 'Failed to submit donor verification.'
-      setError(messageText)
-    } finally {
-      setSavingDonor(false)
-    }
-  }
-
   const donorStatusLabel = donorStatus === 'verified'
     ? 'Verified'
     : donorStatus === 'pending'
@@ -255,12 +177,22 @@ function ProfilePage() {
     : donorStatus === 'rejected'
     ? 'Rejected'
     : 'Not Applied'
+
+  const donorActionLabel = donorStatus === 'verified'
+    ? 'Manage Donor Profile'
+    : donorStatus === 'pending'
+    ? 'View Donor Application'
+    : donorStatus === 'rejected'
+    ? 'Apply Again as Donor'
+    : 'Apply to Be a Donor'
+
+  const donorLocationLabel = [street, city].filter(Boolean).join(', ')
   const profileImageSrc = photoPreviewUrl || photoURL || getDefaultAvatar(gender)
 
   return (
     <section className="panel">
       <h2>My Profile</h2>
-      <p className="panel-sub">Keep your profile updated for better donor/request matching.</p>
+      <p className="panel-sub">Keep your account details updated, and manage donor requirements from a dedicated page.</p>
 
       {loading ? <p className="panel-sub">Loading profile...</p> : null}
       {message ? <p className="auth-message auth-message-info">{message}</p> : null}
@@ -302,18 +234,6 @@ function ProfilePage() {
           required
         />
 
-        <label htmlFor="profile-blood">Blood Type</label>
-        <select id="profile-blood" value={bloodType} onChange={(event) => setBloodType(event.target.value)}>
-          {BLOOD_TYPES.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-
-        <label htmlFor="profile-city">City</label>
-        <input id="profile-city" value={city} onChange={(event) => setCity(event.target.value)} placeholder="e.g. Manila" />
-
         <label htmlFor="profile-contact">Contact Number</label>
         <input
           id="profile-contact"
@@ -334,49 +254,54 @@ function ProfilePage() {
         </div>
 
         {donorStatus === 'verified' ? (
-          <div className="donor-actions-wrap">
-            <p className="panel-sub">Your donor profile is verified. Toggle your availability anytime.</p>
-            <button type="button" className="ghost-btn" onClick={() => void toggleDonorAvailability()} disabled={savingDonor}>
-              {savingDonor
-                ? 'Saving...'
-                : donorAvailability === 'available'
-                ? 'ON - Available to Donate'
-                : 'OFF - Unavailable'}
-            </button>
-            {medicalCertificateURL ? (
-              <a className="ghost-btn btn-link" href={medicalCertificateURL} target="_blank" rel="noreferrer">
-                View Medical Certificate
-              </a>
+          <>
+            <div className="donor-note-banner">
+              Your donor account is verified. Use the donor page to manage donor details, certificate, and availability.
+            </div>
+            {donationCooldownUntil && donationCooldownUntil.getTime() > Date.now() ? (
+              <div className="donor-note-banner warning">
+                Cooldown active until {donationCooldownUntil.toLocaleString()}.
+              </div>
             ) : null}
-          </div>
+            <div className="donor-summary-grid">
+              <div className="donor-summary-item">
+                <span>Availability</span>
+                <strong>{donorAvailability === 'available' ? 'Available' : 'Unavailable'}</strong>
+              </div>
+              <div className="donor-summary-item">
+                <span>Blood Type</span>
+                <strong>{bloodType || 'Not set'}</strong>
+              </div>
+              <div className="donor-summary-item">
+                <span>Location</span>
+                <strong>{donorLocationLabel || 'Not set'}</strong>
+              </div>
+            </div>
+          </>
         ) : null}
 
         {donorStatus === 'pending' ? (
-          <p className="panel-sub">Your donor verification request is under admin review.</p>
+          <div className="donor-note-banner warning">
+            Your donor verification request is under admin review.
+          </div>
         ) : null}
 
         {donorStatus === 'rejected' ? (
-          <div className="donor-actions-wrap">
-            <p className="panel-sub">Your previous donor application was rejected. Update your details and submit again.</p>
-            {rejectionReason ? <p className="panel-sub">Reason: {rejectionReason}</p> : null}
-          </div>
+          <>
+            <div className="donor-note-banner danger">
+              Your last donor application was rejected. Open the donor page to update details and apply again.
+            </div>
+            {rejectionReason ? <p className="panel-sub donor-reason">Reason: {rejectionReason}</p> : null}
+          </>
         ) : null}
 
-        {(donorStatus === 'none' || donorStatus === 'rejected') ? (
-          <div className="auth-form donor-apply-form">
-            <label htmlFor="profile-cert-url">Medical Certificate URL</label>
-            <input
-              id="profile-cert-url"
-              value={medicalCertificateURL}
-              onChange={(event) => setMedicalCertificateURL(event.target.value)}
-              placeholder="Paste uploaded certificate URL"
-            />
-
-            <button type="button" className="solid-btn auth-submit" onClick={() => void submitDonorVerification()} disabled={savingDonor}>
-              {savingDonor ? 'Submitting...' : 'Submit for Donor Verification'}
-            </button>
-          </div>
+        {donorStatus === 'none' ? (
+          <p className="panel-sub">Ready to become a donor? The full donor application now has its own page.</p>
         ) : null}
+
+        <div className="donor-actions-wrap">
+          <Link to="/app/donor-application" className="solid-btn btn-link">{donorActionLabel}</Link>
+        </div>
       </div>
 
       <div className="utility-actions">

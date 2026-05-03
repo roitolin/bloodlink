@@ -1,5 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text, ScrollView, StyleSheet, Image } from "react-native";
+import { useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Image,
+  Modal,
+  Pressable,
+  TouchableOpacity,
+  type ImageSourcePropType,
+} from "react-native";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -7,6 +18,13 @@ type AboutSection = {
   title: string;
   description: string;
   icon: IconName;
+};
+
+type Member = {
+  name: string;
+  role: string;
+  quote: string;
+  photo: ImageSourcePropType;
 };
 
 const highlights = [
@@ -17,16 +35,16 @@ const highlights = [
 
 const sections: AboutSection[] = [
   {
-    title: "BloodLink",
+    title: "LifeCycle",
     icon: "pulse",
     description:
-      "BloodLink connects donors and requesters faster during urgent blood needs. Our mission is to make blood donation more accessible, reliable, and community-driven.",
+      "LifeCycle connects donors and requesters faster during urgent blood needs. Our mission is to make blood donation more accessible, reliable, and community-driven.",
   },
   {
     title: "Why We Built This",
     icon: "megaphone",
     description:
-      "Many families struggle to find blood donors during emergencies, often posting repeatedly on social media to be noticed. BloodLink gives them a dedicated place where urgent requests can be seen quickly and matched with willing donors.",
+      "Many families struggle to find blood donors during emergencies, often posting repeatedly on social media to be noticed. LifeCycle gives them a dedicated place where urgent requests can be seen quickly and matched with willing donors.",
   },
   {
     title: "Our Mission",
@@ -42,93 +60,139 @@ const sections: AboutSection[] = [
   },
 ];
 
-const systemMembers = [
+const systemMembers: Member[] = [
   {
     name: "Roi Veinze A. Tolin",
     role: "Team Member",
+    quote:
+      "Your blood is a small gift with a monumental impact. Together, we can build a stronger, healthier world through compassion. Donate today.",
     photo: require("../../../assets/member-photos/roi-veinze-tolin.png"),
   },
   {
     name: "Mary Sheen Punay",
     role: "Team Member",
+    quote:
+      "Every donor gives more than blood. They give hope, time, and another chance for someone to keep living.",
     photo: require("../../../assets/member-photos/mary-sheen-punay.png"),
   },
   {
     name: "Daisy Derial",
     role: "Team Member",
+    quote:
+      "Compassion becomes powerful when it moves quickly. LifeCycle helps communities respond when every minute matters.",
     photo: require("../../../assets/member-photos/daisy-derial.jpg"),
   },
   {
     name: "Ezra Baguhin",
     role: "Team Member",
+    quote:
+      "One simple act of donation can connect strangers, strengthen families, and save lives in the moments that count most.",
     photo: require("../../../assets/member-photos/ezra-baguhin.png"),
   },
   {
     name: "Samuel Monares",
     role: "Team Member",
+    quote:
+      "When people come together for a shared purpose, urgent blood needs turn into stories of survival and community.",
     photo: require("../../../assets/member-photos/samuel-monares-jr.png"),
   },
   {
     name: "Cyrus Dan Coyoca",
     role: "Team Member",
+    quote:
+      "Technology should serve humanity. LifeCycle is built to make help visible, reachable, and immediate for those in need.",
     photo: require("../../../assets/member-photos/cyrus-coyoca.jpg"),
   },
 ];
 
 export default function AboutUsScreen() {
+  const [activeMember, setActiveMember] = useState<Member | null>(null);
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <View style={styles.hero}>
-        <View style={[styles.heroGlow, styles.heroGlowTop]} />
-        <View style={[styles.heroGlow, styles.heroGlowBottom]} />
-        <Text style={styles.badge}>Community Powered</Text>
-        <Text style={styles.heroTitle}>About BloodLink</Text>
-        <Text style={styles.heroSubtitle}>
-          We are building a faster, more human way to connect blood donors and people in urgent
-          need.
-        </Text>
+    <>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <View style={styles.hero}>
+          <View style={[styles.heroGlow, styles.heroGlowTop]} />
+          <View style={[styles.heroGlow, styles.heroGlowBottom]} />
+          <Text style={styles.badge}>Community Powered</Text>
+          <Text style={styles.heroTitle}>About LifeCycle</Text>
+          <Text style={styles.heroSubtitle}>
+            We are building a faster, more human way to connect blood donors and people in urgent
+            need.
+          </Text>
 
-        <View style={styles.highlightRow}>
-          {highlights.map((item) => (
-            <View key={item.label} style={styles.highlightCard}>
-              <Text style={styles.highlightValue}>{item.value}</Text>
-              <Text style={styles.highlightLabel}>{item.label}</Text>
-            </View>
-          ))}
+          <View style={styles.highlightRow}>
+            {highlights.map((item) => (
+              <View key={item.label} style={styles.highlightCard}>
+                <Text style={styles.highlightValue}>{item.value}</Text>
+                <Text style={styles.highlightLabel}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
         </View>
-      </View>
 
-      {sections.map((section) => (
-        <View key={section.title} style={styles.aboutCard}>
+        {sections.map((section) => (
+          <View key={section.title} style={styles.aboutCard}>
+            <View style={styles.cardHeader}>
+              <View style={styles.iconWrap}>
+                <Ionicons name={section.icon} size={18} color="#9a1d26" />
+              </View>
+              <Text style={styles.aboutTitle}>{section.title}</Text>
+            </View>
+            <Text style={styles.aboutText}>{section.description}</Text>
+          </View>
+        ))}
+
+        <View style={[styles.aboutCard, styles.membersShowcaseCard]}>
           <View style={styles.cardHeader}>
             <View style={styles.iconWrap}>
-              <Ionicons name={section.icon} size={18} color="#9a1d26" />
+              <Ionicons name="people" size={18} color="#9a1d26" />
             </View>
-            <Text style={styles.aboutTitle}>{section.title}</Text>
+            <Text style={styles.aboutTitle}>System Members</Text>
           </View>
-          <Text style={styles.aboutText}>{section.description}</Text>
+          <Text style={styles.memberCountPill}>{systemMembers.length} Members</Text>
+          <Text style={styles.memberSubtitle}>Core team behind LifeCycle. Tap a member to view details.</Text>
+          <View style={styles.memberGrid}>
+            {systemMembers.map((member) => (
+              <TouchableOpacity
+                key={member.name}
+                style={styles.memberCardTouchable}
+                activeOpacity={0.86}
+                onPress={() => setActiveMember(member)}
+              >
+                <View style={styles.memberCard}>
+                  <Image source={member.photo} style={styles.memberPhoto} resizeMode="cover" />
+                  <Text style={styles.memberName}>{member.name}</Text>
+                  <Text style={styles.memberRole}>{member.role}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      ))}
+      </ScrollView>
 
-      <View style={styles.aboutCard}>
-        <View style={styles.cardHeader}>
-          <View style={styles.iconWrap}>
-            <Ionicons name="people" size={18} color="#9a1d26" />
-          </View>
-          <Text style={styles.aboutTitle}>System Members</Text>
-        </View>
-        <Text style={styles.memberSubtitle}>Core team behind BloodLink</Text>
-        <View style={styles.memberGrid}>
-          {systemMembers.map((member) => (
-            <View key={member.name} style={styles.memberCard}>
-              <Image source={member.photo} style={styles.memberPhoto} resizeMode="cover" />
-              <Text style={styles.memberName}>{member.name}</Text>
-              <Text style={styles.memberRole}>{member.role}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    </ScrollView>
+      <Modal visible={!!activeMember} transparent animationType="fade" onRequestClose={() => setActiveMember(null)}>
+        <Pressable style={styles.memberModalOverlay} onPress={() => setActiveMember(null)}>
+          <Pressable style={styles.memberModalCard} onPress={(event) => event.stopPropagation()}>
+            <Pressable style={styles.memberModalCloseBtn} onPress={() => setActiveMember(null)}>
+              <Text style={styles.memberModalCloseText}>Close</Text>
+            </Pressable>
+            {activeMember ? (
+              <View style={styles.memberModalBanner}>
+                <Text style={styles.memberModalName}>{activeMember.name}</Text>
+                <Text style={styles.memberModalRole}>{activeMember.role}</Text>
+                <View style={styles.memberModalBody}>
+                  <View style={styles.memberModalPhotoWrap}>
+                    <Image source={activeMember.photo} style={styles.memberModalPhoto} resizeMode="contain" />
+                  </View>
+                  <Text style={styles.memberModalQuote}>&quot;{activeMember.quote}&quot;</Text>
+                </View>
+              </View>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
@@ -253,10 +317,34 @@ const styles = StyleSheet.create({
   },
   memberSubtitle: {
     marginTop: 2,
-    marginBottom: 10,
+    marginBottom: 12,
     color: "#6b7280",
     fontSize: 13,
     fontWeight: "600",
+  },
+  membersShowcaseCard: {
+    borderColor: "#f4d7da",
+    backgroundColor: "#fffafb",
+    shadowColor: "#911f29",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  memberCountPill: {
+    alignSelf: "flex-start",
+    marginTop: -2,
+    marginBottom: 8,
+    color: "#8f1c24",
+    fontSize: 11,
+    fontWeight: "700",
+    backgroundColor: "#ffeef1",
+    borderWidth: 1,
+    borderColor: "#ffd3d9",
+    borderRadius: 999,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    letterSpacing: 0.2,
   },
   memberGrid: {
     flexDirection: "row",
@@ -264,23 +352,30 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
   },
-  memberCard: {
+  memberCardTouchable: {
     width: "48%",
+  },
+  memberCard: {
     borderWidth: 1,
-    borderColor: "#eceff4",
-    borderRadius: 12,
-    backgroundColor: "#f9fafb",
-    paddingVertical: 10,
+    borderColor: "#f2d7db",
+    borderRadius: 14,
+    backgroundColor: "#fff7f8",
+    paddingVertical: 12,
     paddingHorizontal: 8,
     alignItems: "center",
+    shadowColor: "#911f29",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   memberPhoto: {
-    width: 66,
-    height: 66,
-    borderRadius: 33,
+    width: 76,
+    height: 76,
+    borderRadius: 20,
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderWidth: 2,
+    borderColor: "#ffffff",
     backgroundColor: "#ffffff",
   },
   memberName: {
@@ -294,7 +389,85 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 11,
     color: "#9a1d26",
-    fontWeight: "600",
+    fontWeight: "700",
+    backgroundColor: "#ffe7ea",
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#ffd3d9",
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+  },
+  memberModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(17, 24, 39, 0.65)",
+    justifyContent: "center",
+    padding: 18,
+  },
+  memberModalCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#ead6da",
+    backgroundColor: "#fffafb",
+    padding: 12,
+  },
+  memberModalCloseBtn: {
+    alignSelf: "flex-end",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  memberModalCloseText: {
+    color: "#7b2430",
+    fontWeight: "700",
+  },
+  memberModalBanner: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e8d8db",
+    backgroundColor: "#fff9fb",
+    padding: 12,
+  },
+  memberModalName: {
+    color: "#931c26",
+    fontSize: 25,
+    lineHeight: 28,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  memberModalRole: {
+    marginTop: 4,
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.7,
+  },
+  memberModalBody: {
+    marginTop: 10,
+    gap: 12,
+  },
+  memberModalPhotoWrap: {
+    borderWidth: 1,
+    borderColor: "#f1d5d9",
+    borderRadius: 14,
+    padding: 8,
+    backgroundColor: "#fff2f4",
+  },
+  memberModalPhoto: {
+    width: "100%",
+    height: 260,
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+  },
+  memberModalQuote: {
+    color: "#1f2937",
+    fontSize: 15,
+    lineHeight: 23,
+    fontWeight: "500",
+    borderWidth: 1,
+    borderColor: "#f0d9de",
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    padding: 12,
   },
 });
 

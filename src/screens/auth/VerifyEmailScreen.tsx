@@ -27,9 +27,9 @@ export default function VerifyEmailScreen({ navigation, route }: any) {
           <Text style={styles.email}>{email || "your email"}</Text>
 
           <View style={styles.stepsCard}>
-            <Text style={styles.stepText}>1. Open your inbox and find the BloodLink verification email.</Text>
+            <Text style={styles.stepText}>1. Open your inbox and find the verification email.</Text>
             <Text style={styles.stepText}>2. Click the verification link in that message.</Text>
-            <Text style={styles.stepText}>3. Return here and log in after verification.</Text>
+            <Text style={styles.stepText}>3. Return here, sign in, and continue to LifeCycle from the account hub.</Text>
           </View>
         </Card.Content>
 

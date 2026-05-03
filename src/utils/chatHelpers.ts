@@ -1,4 +1,4 @@
-import { doc, serverTimestamp, setDoc, type Firestore } from "firebase/firestore";
+import { arrayRemove, doc, serverTimestamp, setDoc, type Firestore } from "firebase/firestore";
 
 /**
  * Creates a deterministic conversation ID based on two user IDs.
@@ -17,14 +17,30 @@ export const ensureConversationForUsers = async (
   uid2: string
 ): Promise<string> => {
   const conversationId = getConversationId(uid1, uid2);
-  await setDoc(
-    doc(db, "conversations", conversationId),
-    {
-      participants: [uid1, uid2].sort(),
+  const participants = [uid1, uid2].sort();
+  const conversationRef = doc(db, "conversations", conversationId);
+
+  try {
+    await setDoc(
+      conversationRef,
+      {
+        updatedAt: serverTimestamp(),
+        hiddenFor: arrayRemove(uid1, uid2),
+      },
+      { merge: true }
+    );
+  } catch (error: any) {
+    const errorCode = String(error?.code || "");
+    if (errorCode !== "not-found" && errorCode !== "permission-denied") {
+      throw error;
+    }
+
+    await setDoc(conversationRef, {
+      participants,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+    });
+  }
+
   return conversationId;
 };

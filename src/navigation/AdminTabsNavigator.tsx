@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "@/context/AuthContext";
 import {
   AdminAllDonorsScreen,
   AdminAnalyticsScreen,
@@ -12,6 +13,7 @@ import {
   AdminModerationScreen,
   AdminMoreScreen,
   AdminSupportMessages,
+  AdminFuneralShopVerificationsScreen,
   AdminUsersScreen,
 } from "@/pages/admin";
 import { AppFeedbackScreen } from "@/pages/shared";
@@ -71,8 +73,14 @@ function TabIcon({ name, color, size, badgeCount }: any) {
 }
 
 export default function AdminTabsNavigator() {
+  const { role } = useAuth();
   const unreadSupportCount = useUnreadSupportCount();
   const { donors: pendingDonorCount, requests: pendingRequestCount } = useAdminManagementBreakdownCount();
+  const isRootAdmin = role === "super_admin" || role === "admin";
+  const isBloodAdmin = isRootAdmin || role === "blood_admin";
+  const isFuneralAdmin = isRootAdmin || role === "funeral_admin";
+  const canSeeCommsAndInsights = isRootAdmin || role === "blood_admin";
+  const initialRouteName = role === "blood_admin" ? "Blood" : role === "funeral_admin" ? "Funeral" : "Dashboard";
 
   const hiddenTabOptions = {
     tabBarButton: () => null,
@@ -87,6 +95,7 @@ export default function AdminTabsNavigator() {
 
   return (
     <Tab.Navigator
+      initialRouteName={initialRouteName}
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: string;
@@ -97,9 +106,11 @@ export default function AdminTabsNavigator() {
           } else if (route.name === "Management") {
             iconName = focused ? "list" : "list-outline";
             badgeCount = pendingRequestCount;
-          } else if (route.name === "Donors") {
+          } else if (route.name === "Blood") {
             iconName = focused ? "water" : "water-outline";
             badgeCount = pendingDonorCount;
+          } else if (route.name === "Funeral") {
+            iconName = focused ? "business" : "business-outline";
           } else if (route.name === "Users") {
             iconName = focused ? "people" : "people-outline";
           } else if (route.name === "More") {
@@ -139,36 +150,45 @@ export default function AdminTabsNavigator() {
       })}
     >
       <Tab.Screen name="Dashboard" component={AdminDashboard} options={{ title: "Dashboard" }} />
-      <Tab.Screen name="Management" component={AdminManagementScreen} options={{ title: "Requests" }} />
-      <Tab.Screen name="Donors" component={AdminAllDonorsScreen} options={{ title: "Donors" }} />
+      {isRootAdmin || role === "blood_admin" ? <Tab.Screen name="Management" component={AdminManagementScreen} options={{ title: "Requests" }} /> : null}
+      {isBloodAdmin ? <Tab.Screen name="Blood" component={AdminAllDonorsScreen} options={{ title: "Admin Blood" }} /> : null}
+      {isFuneralAdmin ? <Tab.Screen name="Funeral" component={AdminFuneralShopVerificationsScreen} options={{ title: "Shops" }} /> : null}
       <Tab.Screen name="Users" component={AdminUsersScreen} options={{ title: "Users" }} />
       <Tab.Screen name="More" component={AdminMoreScreen} options={{ title: "More" }} />
 
-      <Tab.Screen
-        name="Analytics"
-        component={AdminAnalyticsScreen}
-        options={({ navigation }) => hiddenWithBack(navigation, "Analytics")}
-      />
+      {canSeeCommsAndInsights ? (
+        <Tab.Screen
+          name="Analytics"
+          component={AdminAnalyticsScreen}
+          options={({ navigation }) => hiddenWithBack(navigation, "Analytics")}
+        />
+      ) : null}
       <Tab.Screen
         name="Moderation"
         component={AdminModerationScreen}
         options={({ navigation }) => hiddenWithBack(navigation, "Moderation")}
       />
-      <Tab.Screen
-        name="Announcements"
-        component={AdminAnnouncementsScreen}
-        options={({ navigation }) => hiddenWithBack(navigation, "Announcements")}
-      />
-      <Tab.Screen
-        name="Feedback"
-        component={AppFeedbackScreen}
-        options={({ navigation }) => hiddenWithBack(navigation, "Rate & Feedback")}
-      />
-      <Tab.Screen
-        name="Support"
-        component={AdminSupportMessages}
-        options={({ navigation }) => hiddenWithBack(navigation, "Support Inbox")}
-      />
+      {canSeeCommsAndInsights ? (
+        <Tab.Screen
+          name="Announcements"
+          component={AdminAnnouncementsScreen}
+          options={({ navigation }) => hiddenWithBack(navigation, "Announcements")}
+        />
+      ) : null}
+      {canSeeCommsAndInsights ? (
+        <Tab.Screen
+          name="Feedback"
+          component={AppFeedbackScreen}
+          options={({ navigation }) => hiddenWithBack(navigation, "Rate & Feedback")}
+        />
+      ) : null}
+      {canSeeCommsAndInsights ? (
+        <Tab.Screen
+          name="Support"
+          component={AdminSupportMessages}
+          options={({ navigation }) => hiddenWithBack(navigation, "Support Inbox")}
+        />
+      ) : null}
       <Tab.Screen
         name="AuditLogs"
         component={AdminAuditLogsScreen}

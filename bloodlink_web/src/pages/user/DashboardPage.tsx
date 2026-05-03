@@ -17,6 +17,12 @@ type Announcement = {
   createdAt?: { toDate?: () => Date } | string | null
 }
 
+type DonorHero = {
+  donorId: string
+  fullName: string
+  donationCount: number
+}
+
 function getAnnouncementTime(value: Announcement['createdAt']) {
   if (!value) return 'Unknown date'
   if (typeof value === 'object' && value !== null && 'toDate' in value) {
@@ -35,6 +41,7 @@ function DashboardPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [viewerCity, setViewerCity] = useState('')
   const [viewerBloodType, setViewerBloodType] = useState('')
+  const [donorHeroes, setDonorHeroes] = useState<DonorHero[]>([])
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
@@ -102,6 +109,46 @@ function DashboardPage() {
     void loadAnnouncements()
   }, [])
 
+  useEffect(() => {
+    const loadDonorHeroes = async () => {
+      try {
+        const historySnap = await getDocs(collection(db, 'donation_history'))
+        const byDonor = new Map<string, number>()
+
+        historySnap.docs.forEach((itemDoc) => {
+          const data = itemDoc.data() as { donorId?: string }
+          const donorId = String(data?.donorId || '').trim()
+          if (!donorId) return
+          byDonor.set(donorId, (byDonor.get(donorId) || 0) + 1)
+        })
+
+        const topDonors = Array.from(byDonor.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3)
+        if (topDonors.length === 0) {
+          setDonorHeroes([])
+          return
+        }
+
+        const heroes = await Promise.all(
+          topDonors.map(async ([donorId, donationCount]) => {
+            const donorSnap = await getDoc(doc(db, 'users', donorId))
+            const donorData = donorSnap.data() as { fullName?: string } | undefined
+            return {
+              donorId,
+              fullName: String(donorData?.fullName || `Donor ${donorId.slice(0, 6)}`),
+              donationCount,
+            }
+          }),
+        )
+
+        setDonorHeroes(heroes)
+      } catch {
+        setDonorHeroes([])
+      }
+    }
+
+    void loadDonorHeroes()
+  }, [])
+
   const stats = useMemo(() => {
     const total = requests.length
     const pending = requests.filter((item) => String(item.status || '').toLowerCase() === 'pending').length
@@ -115,7 +162,7 @@ function DashboardPage() {
     <section className="panel feed-layout">
       <article className="feed-hero-card">
         <p className="kicker">LIFE-SAVING NETWORK</p>
-        <h2>Welcome to BloodLink, {fullName}</h2>
+        <h2>Welcome to LifeCycle, {fullName}</h2>
         <p className="panel-sub">Connect with donors, view active requests, and respond faster in your community.</p>
         <div className="feed-badges-row">
           <span className="feed-badge-pill">Fast Matching</span>
@@ -163,6 +210,22 @@ function DashboardPage() {
           <article className="stat-card"><strong>{stats.accepted}</strong><span>Accepted</span></article>
           <article className="stat-card"><strong>{stats.completed}</strong><span>Completed</span></article>
         </div>
+      </article>
+
+      <article className="panel feed-block">
+        <h3>Donor Heroes</h3>
+        <p className="panel-sub">Celebrating community members who already saved lives through donation.</p>
+        {donorHeroes.length === 0 ? (
+          <p className="panel-sub">No completed donations yet. Be the first donor hero in your city.</p>
+        ) : (
+          <ul className="feed-list">
+            {donorHeroes.map((hero, index) => (
+              <li key={hero.donorId}>
+                #{index + 1} {hero.fullName} - {hero.donationCount} donation{hero.donationCount > 1 ? 's' : ''}
+              </li>
+            ))}
+          </ul>
+        )}
       </article>
 
       <article className="panel feed-block">

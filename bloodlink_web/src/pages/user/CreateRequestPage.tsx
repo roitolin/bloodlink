@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { addDoc, collection, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
+import { ensureConversationForUsers } from '@/utils/chatHelpers'
 import { syncPublicCityAvailability } from '../../utils/publicCityAvailability'
 import { buildSlaDeadlineDate, getSlaMinutes } from '../../utils/requestSla'
 
@@ -37,10 +38,6 @@ type CreateRequestState = {
   draft?: RequestDraft
 }
 
-function getConversationId(uid1: string, uid2: string) {
-  return [uid1, uid2].sort().join('_')
-}
-
 function CreateRequestPage() {
   const navigate = useNavigate()
   const locationState = useLocation().state as CreateRequestState | null
@@ -63,6 +60,7 @@ function CreateRequestPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [validationMessage, setValidationMessage] = useState('')
 
   useEffect(() => {
     if (!donorContext || isEditMode) return
@@ -100,6 +98,7 @@ function CreateRequestPage() {
     setLatitude('')
     setLongitude('')
     setLocationLabel('')
+    setValidationMessage('')
   }
 
   const useDonorLocation = () => {
@@ -124,16 +123,7 @@ function CreateRequestPage() {
     }
 
     try {
-      const conversationId = getConversationId(user.uid, donorId)
-      const ref = doc(db, 'conversations', conversationId)
-      const snapshot = await getDoc(ref)
-      if (!snapshot.exists()) {
-        await setDoc(ref, {
-          participants: [user.uid, donorId],
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        })
-      }
+      await ensureConversationForUsers(db, user.uid, donorId)
       setMessage('Conversation is ready. Open the floating message icon to chat.')
     } catch (caughtError) {
       const messageText =
@@ -148,9 +138,11 @@ function CreateRequestPage() {
     event.preventDefault()
 
     if (!patientName.trim() || !hospital.trim() || !city.trim() || !contactNumber.trim()) {
-      setError('Please fill all required fields.')
+      setValidationMessage('Please fill all required fields before submitting your blood request.')
+      setError('')
       return
     }
+    setValidationMessage('')
 
     const user = auth.currentUser
     if (!user) {
@@ -237,6 +229,7 @@ function CreateRequestPage() {
       </p>
 
       {message ? <p className="auth-message auth-message-info">{message}</p> : null}
+      {validationMessage ? <div className="request-validation-banner" role="alert"><strong>Required fields missing</strong><span>{validationMessage}</span></div> : null}
       {error ? <p className="auth-message auth-message-error">{error}</p> : null}
 
       {donorContext ? (
@@ -276,13 +269,13 @@ function CreateRequestPage() {
 
       <form className="auth-form" onSubmit={handleSubmit}>
         <label htmlFor="request-patient">Patient Name</label>
-        <input id="request-patient" value={patientName} onChange={(event) => setPatientName(event.target.value)} required />
+        <input id="request-patient" value={patientName} onChange={(event) => { setPatientName(event.target.value); if (error) setError(''); if (validationMessage) setValidationMessage('') }} required />
 
         <label htmlFor="request-hospital">Hospital</label>
-        <input id="request-hospital" value={hospital} onChange={(event) => setHospital(event.target.value)} required />
+        <input id="request-hospital" value={hospital} onChange={(event) => { setHospital(event.target.value); if (error) setError(''); if (validationMessage) setValidationMessage('') }} required />
 
         <label htmlFor="request-city">City</label>
-        <input id="request-city" value={city} onChange={(event) => setCity(event.target.value)} required />
+        <input id="request-city" value={city} onChange={(event) => { setCity(event.target.value); if (error) setError(''); if (validationMessage) setValidationMessage('') }} required />
 
         <label htmlFor="request-blood">Blood Type Needed</label>
         <select id="request-blood" value={bloodType} onChange={(event) => setBloodType(event.target.value)}>
@@ -307,7 +300,7 @@ function CreateRequestPage() {
         <input
           id="request-contact"
           value={contactNumber}
-          onChange={(event) => setContactNumber(event.target.value)}
+          onChange={(event) => { setContactNumber(event.target.value); if (error) setError(''); if (validationMessage) setValidationMessage('') }}
           placeholder="e.g. 09123456789"
           required
         />

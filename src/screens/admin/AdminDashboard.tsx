@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, View, Text, StyleSheet } from "react-native";
+import { RefreshControl, ScrollView, View, Text, StyleSheet } from "react-native";
 import { Button, Card, ActivityIndicator } from "react-native-paper";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../services/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
 import { useResponsive } from "../../utils/responsive";
 import { useAppDialog } from "../../hooks/useAppDialog";
+import { useDoubleTapAction } from "../../hooks/useDoubleTapAction";
 
 type DashboardMetrics = {
   totalUsers: number;
   pendingVerifications: number;
+  pendingFuneralShops: number;
   activeDonors: number;
   pendingRequests: number;
 };
@@ -17,16 +19,27 @@ type DashboardMetrics = {
 const EMPTY_METRICS: DashboardMetrics = {
   totalUsers: 0,
   pendingVerifications: 0,
+  pendingFuneralShops: 0,
   activeDonors: 0,
   pendingRequests: 0,
 };
 
 export default function AdminDashboard({ navigation }: any) {
-  const { logout } = useAuth();
+  const { logout, role } = useAuth();
   const { isDesktop } = useResponsive();
   const [metrics, setMetrics] = useState<DashboardMetrics>(EMPTY_METRICS);
   const [loadingMetrics, setLoadingMetrics] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const { showDialog, dialog } = useAppDialog();
+  const isBloodAdmin = role === "admin" || role === "blood_admin";
+  const isFuneralAdmin = role === "admin" || role === "funeral_admin";
+  const title = role === "blood_admin" ? "Blood Admin" : role === "funeral_admin" ? "Funeral Admin" : "Admin Dashboard";
+  const subtitle =
+    role === "blood_admin"
+      ? "Monitor blood verification, requests, users, and support tools."
+      : role === "funeral_admin"
+        ? "Monitor funeral shop approvals, users, and support tools."
+        : "Monitor blood operations, funeral shop approvals, users, and support channels.";
 
   const handleLogout = () => {
     showDialog({
@@ -57,9 +70,10 @@ export default function AdminDashboard({ navigation }: any) {
   const loadMetrics = useCallback(async () => {
     setLoadingMetrics(true);
     try {
-      const [allUsersSnap, pendingDonorSnap, verifiedDonorSnap, pendingRequestSnap] = await Promise.all([
+      const [allUsersSnap, pendingDonorSnap, pendingFuneralShopSnap, verifiedDonorSnap, pendingRequestSnap] = await Promise.all([
         getDocs(collection(db, "users")),
         getDocs(query(collection(db, "users"), where("donorStatus", "==", "pending"))),
+        getDocs(query(collection(db, "users"), where("funeralShopStatus", "==", "pending"))),
         getDocs(query(collection(db, "users"), where("donorStatus", "==", "verified"))),
         getDocs(query(collection(db, "requests"), where("status", "==", "pending"))),
       ]);
@@ -71,6 +85,7 @@ export default function AdminDashboard({ navigation }: any) {
       setMetrics({
         totalUsers: allUsersSnap.size,
         pendingVerifications: pendingDonorSnap.size,
+        pendingFuneralShops: pendingFuneralShopSnap.size,
         activeDonors,
         pendingRequests: pendingRequestSnap.size,
       });
@@ -86,15 +101,29 @@ export default function AdminDashboard({ navigation }: any) {
     loadMetrics();
   }, [loadMetrics]);
 
+  const refreshDashboard = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadMetrics();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadMetrics]);
+
+  const handleDoubleTapRefresh = useDoubleTapAction(refreshDashboard);
+
   return (
-    <ScrollView contentContainerStyle={[styles.container, isDesktop && styles.containerDesktop]}>
+    <ScrollView
+      contentContainerStyle={[styles.container, isDesktop && styles.containerDesktop]}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshDashboard} />}
+    >
       <View style={styles.headerRow}>
         <View style={styles.headerTextWrap}>
-          <Text style={styles.title}>Admin Dashboard</Text>
-          <Text style={styles.subtitle}>Monitor users, donor verification, and support channels.</Text>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
-        <Button mode="outlined" icon="refresh" onPress={loadMetrics} compact>
-          Refresh
+        <Button mode="outlined" icon="refresh" onPress={handleDoubleTapRefresh} compact>
+          Refresh x2
         </Button>
       </View>
 
@@ -111,54 +140,88 @@ export default function AdminDashboard({ navigation }: any) {
               <Text style={styles.metricDesc}>Total Users</Text>
             </Card.Content>
           </Card>
-          <Card style={styles.metricCard} mode="elevated">
-            <Card.Content>
-              <Text style={styles.metricValue}>{metrics.activeDonors}</Text>
-              <Text style={styles.metricDesc}>Active Donors</Text>
-            </Card.Content>
-          </Card>
-          <Card style={styles.metricCard} mode="elevated">
-            <Card.Content>
-              <Text style={styles.metricValue}>{metrics.pendingVerifications}</Text>
-              <Text style={styles.metricDesc}>Pending Verifications</Text>
-            </Card.Content>
-          </Card>
-          <Card style={styles.metricCard} mode="elevated">
-            <Card.Content>
-              <Text style={styles.metricValue}>{metrics.pendingRequests}</Text>
-              <Text style={styles.metricDesc}>Pending Requests</Text>
-            </Card.Content>
-          </Card>
+          {isBloodAdmin ? (
+            <Card style={styles.metricCard} mode="elevated">
+              <Card.Content>
+                <Text style={styles.metricValue}>{metrics.activeDonors}</Text>
+                <Text style={styles.metricDesc}>Active Blood Donors</Text>
+              </Card.Content>
+            </Card>
+          ) : null}
+          {isBloodAdmin ? (
+            <Card style={styles.metricCard} mode="elevated">
+              <Card.Content>
+                <Text style={styles.metricValue}>{metrics.pendingVerifications}</Text>
+                <Text style={styles.metricDesc}>Pending Blood Verifications</Text>
+              </Card.Content>
+            </Card>
+          ) : null}
+          {isBloodAdmin ? (
+            <Card style={styles.metricCard} mode="elevated">
+              <Card.Content>
+                <Text style={styles.metricValue}>{metrics.pendingRequests}</Text>
+                <Text style={styles.metricDesc}>Pending Requests</Text>
+              </Card.Content>
+            </Card>
+          ) : null}
+          {isFuneralAdmin ? (
+            <Card style={styles.metricCard} mode="elevated">
+              <Card.Content>
+                <Text style={styles.metricValue}>{metrics.pendingFuneralShops}</Text>
+                <Text style={styles.metricDesc}>Pending Shop Verifications</Text>
+              </Card.Content>
+            </Card>
+          ) : null}
         </View>
       )}
 
-      <Card style={styles.actionCard} mode="elevated">
-        <Card.Title title="Donor Verification Queue" />
-        <Card.Content>
-          <Text style={styles.cardText}>
-            Review submitted donor documents and approve or reject verification requests.
-          </Text>
-        </Card.Content>
-        <Card.Actions>
-          <Button mode="contained" onPress={() => navigation.navigate("Donors")}>
-            Open Queue ({metrics.pendingVerifications})
-          </Button>
-        </Card.Actions>
-      </Card>
+      {isBloodAdmin ? (
+        <Card style={styles.actionCard} mode="elevated">
+          <Card.Title title="Admin Blood Verification Queue" />
+          <Card.Content>
+            <Text style={styles.cardText}>
+              Review submitted blood donor documents and approve or reject verification requests.
+            </Text>
+          </Card.Content>
+          <Card.Actions>
+            <Button mode="contained" onPress={() => navigation.navigate("Blood")}>
+              Open Queue ({metrics.pendingVerifications})
+            </Button>
+          </Card.Actions>
+        </Card>
+      ) : null}
 
-      <Card style={styles.actionCard} mode="elevated">
-        <Card.Title title="Request Management" />
-        <Card.Content>
-          <Text style={styles.cardText}>
-            Inspect pending requests, review urgency, and open full request details.
-          </Text>
-        </Card.Content>
-        <Card.Actions>
-          <Button mode="contained-tonal" onPress={() => navigation.navigate("Management")}>
-            Open Requests ({metrics.pendingRequests})
-          </Button>
-        </Card.Actions>
-      </Card>
+      {isFuneralAdmin ? (
+        <Card style={styles.actionCard} mode="elevated">
+          <Card.Title title="Admin Funeral Shop Verification Queue" />
+          <Card.Content>
+            <Text style={styles.cardText}>
+              Review funeral shop registrations, inspect business records, and approve or reject shop submissions.
+            </Text>
+          </Card.Content>
+          <Card.Actions>
+            <Button mode="contained-tonal" onPress={() => navigation.navigate("Funeral")}>
+              Open Queue ({metrics.pendingFuneralShops})
+            </Button>
+          </Card.Actions>
+        </Card>
+      ) : null}
+
+      {isBloodAdmin ? (
+        <Card style={styles.actionCard} mode="elevated">
+          <Card.Title title="Request Management" />
+          <Card.Content>
+            <Text style={styles.cardText}>
+              Inspect pending requests, review urgency, and open full request details.
+            </Text>
+          </Card.Content>
+          <Card.Actions>
+            <Button mode="contained-tonal" onPress={() => navigation.navigate("Management")}>
+              Open Requests ({metrics.pendingRequests})
+            </Button>
+          </Card.Actions>
+        </Card>
+      ) : null}
 
       <Card style={styles.actionCard} mode="elevated">
         <Card.Title title="User Management" />

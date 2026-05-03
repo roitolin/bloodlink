@@ -7,7 +7,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['super_admin', 'admin', 'blood_admin', 'funeral_admin'];
     }
 
     function isResourceOwner(ownerId) {
@@ -51,16 +51,288 @@ service cloud.firestore {
           );
     }
 
+    function isConversationParticipant() {
+      return isSignedIn() && request.auth.uid in resource.data.participants;
+    }
+
+    function isConversationParticipantById(conversationId) {
+      return isSignedIn() &&
+        request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+    }
+
+    function isValidNotificationCreate() {
+      return request.resource.data.userId is string &&
+        request.resource.data.type is string &&
+        request.resource.data.title is string &&
+        request.resource.data.body is string &&
+        request.resource.data.read == false &&
+        request.resource.data.createdAt is timestamp;
+    }
+
+    function rateLimitDocBelongsToUser(rateLimitId) {
+      return rateLimitId.matches('^' + request.auth.uid + '_.*$');
+    }
+
+    function isKnownRateLimitAction(action) {
+      return action == "chat_message" ||
+        action == "support_message" ||
+        action == "abuse_report" ||
+        action == "create_request";
+    }
+
+    function hasValidRateLimitPolicy(action, max, windowMs) {
+      return (action == "chat_message" && max == 12 && windowMs == 60000) ||
+        (action == "support_message" && max == 3 && windowMs == 300000) ||
+        (action == "abuse_report" && max == 3 && windowMs == 600000) ||
+        (action == "create_request" && max == 4 && windowMs == 3600000);
+    }
+
+    function isMessageImmutableFieldsUnchanged() {
+      return request.resource.data.senderId == resource.data.senderId &&
+        request.resource.data.timestamp == resource.data.timestamp;
+    }
+
+    function hasUnsafePattern(value) {
+      return value.matches('(?i).*(<script|</script|--|/\\*|\\*/|\\b(select|union|drop|insert|delete|update|alter|truncate)\\b).*');
+    }
+
+    function isSafeText(value, maxLen) {
+      return value is string &&
+        value.size() > 0 &&
+        value.size() <= maxLen &&
+        !hasUnsafePattern(value);
+    }
+
+    function isSafeOptionalText(value, maxLen) {
+      return value == null || (
+        value is string &&
+        value.size() <= maxLen &&
+        !hasUnsafePattern(value)
+      );
+    }
+
+    function isValidLocationMap(location) {
+      return location is map &&
+        location.latitude is number &&
+        location.longitude is number &&
+        location.latitude >= -90 &&
+        location.latitude <= 90 &&
+        location.longitude >= -180 &&
+        location.longitude <= 180;
+    }
+
+    function isValidRequestCreateData() {
+      return request.resource.data.requesterId == request.auth.uid &&
+        isSafeText(request.resource.data.patientName, 120) &&
+        isSafeText(request.resource.data.hospital, 180) &&
+        isSafeText(request.resource.data.city, 80) &&
+        request.resource.data.bloodTypeNeeded is string &&
+        request.resource.data.urgency is string &&
+        isSafeText(request.resource.data.contactNumber, 24) &&
+        (request.resource.data.location == null || isValidLocationMap(request.resource.data.location)) &&
+        isSafeOptionalText(request.resource.data.locationLabel, 180) &&
+        request.resource.data.status == "pending" &&
+        request.resource.data.createdAt is timestamp;
+    }
+
+    function isValidAbuseReportCreateData() {
+      return request.resource.data.reporterId == request.auth.uid &&
+        request.resource.data.targetUserId is string &&
+        request.resource.data.targetUserId.size() > 0 &&
+        request.resource.data.targetUserId.size() <= 64 &&
+        isSafeText(request.resource.data.reason, 80) &&
+        isSafeOptionalText(request.resource.data.details, 1500) &&
+        isSafeOptionalText(request.resource.data.reporterName, 120) &&
+        isSafeOptionalText(request.resource.data.targetName, 120) &&
+        request.resource.data.status == "open" &&
+        request.resource.data.createdAt is timestamp;
+    }
+
+    function isValidFuneralShopStatus(status) {
+      return status == "none" ||
+        status == "pending" ||
+        status == "verified" ||
+        status == "rejected";
+    }
+
+    function isValidFuneralShopInfo(shopInfo) {
+      return shopInfo is map &&
+        isSafeOptionalText(shopInfo.shopName, 120) &&
+        isSafeOptionalText(shopInfo.shopAddress, 220) &&
+        isSafeOptionalText(shopInfo.shopPhoneNumber, 24) &&
+        isSafeOptionalText(shopInfo.shopImageUrl, 1000);
+    }
+
+    function isValidFuneralBusinessInfo(businessInfo) {
+      return businessInfo is map &&
+        isSafeOptionalText(businessInfo.individualRegisteredName, 120) &&
+        isSafeOptionalText(businessInfo.businessName, 140) &&
+        isSafeOptionalText(businessInfo.generalLocation, 120) &&
+        isSafeOptionalText(businessInfo.registeredAddress, 220) &&
+        isSafeOptionalText(businessInfo.zipCode, 10) &&
+        isSafeOptionalText(businessInfo.tin, 32) &&
+        (
+          businessInfo.vatRegistrationStatus == null ||
+          businessInfo.vatRegistrationStatus == "VAT Registered" ||
+          businessInfo.vatRegistrationStatus == "Non Registered"
+        ) &&
+        isSafeOptionalText(businessInfo.birCertificateUrl, 1000);
+    }
+
+    function hasValidFuneralProfileData() {
+      return (
+        request.resource.data.funeralShopStatus == null ||
+        isValidFuneralShopStatus(request.resource.data.funeralShopStatus)
+      ) &&
+      isSafeOptionalText(request.resource.data.funeralShopRejectionReason, 300) &&
+      (
+        request.resource.data.funeralShopSubmittedAt == null ||
+        request.resource.data.funeralShopSubmittedAt is timestamp
+      ) &&
+      (
+        request.resource.data.funeralShopInfo == null ||
+        isValidFuneralShopInfo(request.resource.data.funeralShopInfo)
+      ) &&
+      (
+        request.resource.data.funeralBusinessInfo == null ||
+        isValidFuneralBusinessInfo(request.resource.data.funeralBusinessInfo)
+      ) &&
+      (
+        request.resource.data.funeralShopStatus != "pending" &&
+        request.resource.data.funeralShopStatus != "verified" ||
+        (
+          request.resource.data.funeralShopInfo != null &&
+          isSafeText(request.resource.data.funeralShopInfo.shopName, 120) &&
+          isSafeText(request.resource.data.funeralShopInfo.shopAddress, 220) &&
+          isSafeText(request.resource.data.funeralShopInfo.shopPhoneNumber, 24) &&
+          request.resource.data.funeralBusinessInfo != null &&
+          isSafeText(request.resource.data.funeralBusinessInfo.individualRegisteredName, 120) &&
+          isSafeText(request.resource.data.funeralBusinessInfo.businessName, 140) &&
+          isSafeText(request.resource.data.funeralBusinessInfo.generalLocation, 120) &&
+          isSafeText(request.resource.data.funeralBusinessInfo.registeredAddress, 220) &&
+          isSafeText(request.resource.data.funeralBusinessInfo.zipCode, 10) &&
+          isSafeText(request.resource.data.funeralBusinessInfo.tin, 32) &&
+          (
+            request.resource.data.funeralBusinessInfo.vatRegistrationStatus == "VAT Registered" ||
+            request.resource.data.funeralBusinessInfo.vatRegistrationStatus == "Non Registered"
+          ) &&
+          isSafeText(request.resource.data.funeralBusinessInfo.birCertificateUrl, 1000)
+        )
+      ) &&
+      (
+        request.resource.data.funeralShopStatus != "rejected" ||
+        isSafeText(request.resource.data.funeralShopRejectionReason, 300)
+      );
+    }
+
+    function isValidFuneralServiceRequestCreate() {
+      return request.resource.data.requesterId == request.auth.uid &&
+        request.resource.data.shopId is string &&
+        request.resource.data.shopId.size() > 0 &&
+        isSafeText(request.resource.data.shopName, 140) &&
+        isSafeOptionalText(request.resource.data.shopContactNumber, 24) &&
+        isSafeOptionalText(request.resource.data.shopAddress, 220) &&
+        request.resource.data.cartId is string &&
+        request.resource.data.cartId.size() > 0 &&
+        request.resource.data.productId is string &&
+        request.resource.data.productId.size() > 0 &&
+        isSafeText(request.resource.data.productName, 160) &&
+        isSafeOptionalText(request.resource.data.productPrice, 40) &&
+        isSafeOptionalText(request.resource.data.productImageUrl, 1000) &&
+        isSafeOptionalText(request.resource.data.variationName, 120) &&
+        isSafeOptionalText(request.resource.data.requestType, 40) &&
+        isSafeOptionalText(request.resource.data.customDesignNotes, 1500) &&
+        isSafeOptionalText(request.resource.data.memorialPhotoUrl, 1000) &&
+        isSafeOptionalText(request.resource.data.referencePhotoUrl, 1000) &&
+        isSafeText(request.resource.data.deceasedFullName, 160) &&
+        request.resource.data.deceasedDateOfBirth is string &&
+        request.resource.data.deceasedDateOfBirth.size() > 0 &&
+        (request.resource.data.deceasedAge == null || request.resource.data.deceasedAge is int) &&
+        isSafeText(request.resource.data.tributeMessage, 1000) &&
+        isSafeText(request.resource.data.familyCoordinatorName, 160) &&
+        isSafeText(request.resource.data.wakeAddress, 240) &&
+        isSafeText(request.resource.data.pickupAddress, 240) &&
+        isSafeText(request.resource.data.contactNumber, 24) &&
+        request.resource.data.status == "pending_shop_acceptance" &&
+        request.resource.data.createdAt is timestamp &&
+        request.resource.data.updatedAt is timestamp;
+    }
+
+    function canReadFuneralServiceRequest() {
+      return isSignedIn() && (
+        request.auth.uid == resource.data.requesterId ||
+        request.auth.uid == resource.data.shopId ||
+        isAdmin()
+      );
+    }
+
+    function isValidFuneralServiceRequestStatusUpdate() {
+      return isSignedIn() &&
+        request.auth.uid == resource.data.shopId &&
+        resource.data.status == "pending_shop_acceptance" &&
+        (
+          request.resource.data.status == "accepted_by_shop" ||
+          request.resource.data.status == "declined_by_shop"
+        ) &&
+        request.resource.data.requesterId == resource.data.requesterId &&
+        request.resource.data.shopId == resource.data.shopId &&
+        request.resource.data.shopName == resource.data.shopName &&
+        request.resource.data.shopContactNumber == resource.data.shopContactNumber &&
+        request.resource.data.shopAddress == resource.data.shopAddress &&
+        request.resource.data.cartId == resource.data.cartId &&
+        request.resource.data.productId == resource.data.productId &&
+        request.resource.data.productName == resource.data.productName &&
+        request.resource.data.productPrice == resource.data.productPrice &&
+        request.resource.data.productImageUrl == resource.data.productImageUrl &&
+        request.resource.data.variationName == resource.data.variationName &&
+        request.resource.data.requestType == resource.data.requestType &&
+        request.resource.data.customDesignNotes == resource.data.customDesignNotes &&
+        request.resource.data.memorialPhotoUrl == resource.data.memorialPhotoUrl &&
+        request.resource.data.referencePhotoUrl == resource.data.referencePhotoUrl &&
+        request.resource.data.deceasedFullName == resource.data.deceasedFullName &&
+        request.resource.data.deceasedDateOfBirth == resource.data.deceasedDateOfBirth &&
+        request.resource.data.deceasedAge == resource.data.deceasedAge &&
+        request.resource.data.tributeMessage == resource.data.tributeMessage &&
+        request.resource.data.familyCoordinatorName == resource.data.familyCoordinatorName &&
+        request.resource.data.wakeAddress == resource.data.wakeAddress &&
+        request.resource.data.pickupAddress == resource.data.pickupAddress &&
+        request.resource.data.contactNumber == resource.data.contactNumber &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt is timestamp &&
+        request.resource.data.shopRespondedAt is timestamp &&
+        request.resource.data.handledByShopId == request.auth.uid &&
+        (
+          request.resource.data.status == "accepted_by_shop"
+            ? request.resource.data.acceptedAt is timestamp && request.resource.data.declinedAt == null
+            : request.resource.data.declinedAt is timestamp && request.resource.data.acceptedAt == null
+        );
+    }
+
+    function isReadReceiptOrReactionUpdateOnly() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly(['readBy', 'reactions']);
+    }
+
+    function isSenderMessageUpdate() {
+      return request.auth.uid == resource.data.senderId &&
+        request.resource.data.diff(resource.data).changedKeys().hasOnly(['text', 'editedAt', 'readBy', 'reactions']);
+    }
+
     // Users
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isSignedIn() &&
+        request.auth.uid == userId &&
+        hasValidFuneralProfileData();
+      allow update: if isSignedIn() &&
+        (request.auth.uid == userId || isAdmin()) &&
+        hasValidFuneralProfileData();
+      allow delete: if isSignedIn() && isAdmin();
     }
 
     // Requests
     match /requests/{requestId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() && isValidRequestCreateData();
       allow update: if isSignedIn() && (
         isAcceptingPendingRequest() ||
         request.auth.uid == resource.data.requesterId ||
@@ -81,23 +353,46 @@ service cloud.firestore {
     // Notifications
     match /notifications/{notificationId} {
       allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() && isValidNotificationCreate();
       allow update: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
       allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
+    }
+
+    // Funeral service requests
+    match /funeral_service_requests/{requestId} {
+      allow read: if canReadFuneralServiceRequest();
+      allow create: if isSignedIn() && isValidFuneralServiceRequestCreate();
+      allow update: if isValidFuneralServiceRequestStatusUpdate() || isAdmin();
+      allow delete: if isSignedIn() && (
+        request.auth.uid == resource.data.requesterId ||
+        isAdmin()
+      );
     }
 
     // Conversations
     match /conversations/{conversationId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn() && request.auth.uid in resource.data.participants;
-      allow create: if isSignedIn() && isValidConversationParticipants(conversationId);
-      allow update: if isSignedIn() && isValidConversationParticipants(conversationId);
-      allow delete: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
+      allow create: if isSignedIn() &&
+        isValidConversationParticipants(conversationId) &&
+        request.resource.data.createdAt is timestamp &&
+        request.resource.data.updatedAt is timestamp;
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        isValidConversationParticipants(conversationId)
+      );
+      allow delete: if isSignedIn() && (
+        request.auth.uid in resource.data.participants ||
+        isAdmin()
+      );
 
       match /messages/{messageId} {
-        allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
-        allow create: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
-        allow update: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        allow read: if isSignedIn() &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        allow create: if isSignedIn() &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        allow update: if isSignedIn() &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
         allow delete: if isSignedIn() && (request.auth.uid == resource.data.senderId || isAdmin());
       }
     }
@@ -109,10 +404,35 @@ service cloud.firestore {
       allow update: if isSignedIn() && isAdmin();
     }
 
+    match /settings/{settingId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn() && isAdmin();
+    }
+
     // App feedback and ratings
     match /app_ratings/{ratingUserId} {
       allow read: if isSignedIn();
       allow create, update, delete: if isSignedIn() && request.auth.uid == ratingUserId;
+    }
+
+    // Funeral product ratings
+    match /funeral_product_ratings/{ratingId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        isResourceOwner(resource.data.userId) ||
+        isAdmin()
+      );
+    }
+
+    // Funeral product feedback
+    match /funeral_product_feedback/{feedbackId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        isResourceOwner(resource.data.userId) ||
+        isAdmin()
+      );
     }
 
     // Emergency broadcasts
@@ -150,9 +470,49 @@ service cloud.firestore {
       );
     }
 
+    // Rate limits
+    match /rate_limits/{rateLimitId} {
+      allow read: if isSignedIn() && (
+        rateLimitDocBelongsToUser(rateLimitId) ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() &&
+        rateLimitDocBelongsToUser(rateLimitId) &&
+        request.resource.data.userId == request.auth.uid &&
+        isKnownRateLimitAction(request.resource.data.action) &&
+        hasValidRateLimitPolicy(
+          request.resource.data.action,
+          request.resource.data.max,
+          request.resource.data.windowMs
+        ) &&
+        request.resource.data.count == 1 &&
+        request.resource.data.resetAtMs is int;
+      allow update: if isSignedIn() &&
+        rateLimitDocBelongsToUser(rateLimitId) &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.action == resource.data.action &&
+        request.resource.data.scope == resource.data.scope &&
+        request.resource.data.max == resource.data.max &&
+        request.resource.data.windowMs == resource.data.windowMs &&
+        request.resource.data.resetAtMs is int &&
+        (
+          (
+            request.resource.data.resetAtMs == resource.data.resetAtMs &&
+            request.resource.data.count == resource.data.count + 1
+          ) ||
+          (
+            request.resource.data.count == 1 &&
+            request.resource.data.resetAtMs >= resource.data.resetAtMs + resource.data.windowMs
+          )
+        );
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
     // Abuse reports / moderation queue
     match /abuse_reports/{reportId} {
-      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
+      allow create: if isSignedIn() && isValidAbuseReportCreateData();
       allow read: if isSignedIn() && (
         resource.data.reporterId == request.auth.uid ||
         isAdmin()

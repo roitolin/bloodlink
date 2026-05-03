@@ -11,38 +11,44 @@ import { syncPublicCityAvailability } from '../utils/publicCityAvailability'
 const capabilities = [
   {
     title: 'Smart Donor Search',
-    body: 'AI-driven matching based on proximity, blood type, and historical availability.',
+    body: 'Smart matching based on proximity, blood type, and donor availability.',
     icon: 'search',
+    eyebrow: 'Matching Core',
     tone: 'danger',
   },
   {
     title: 'Request Tracking',
     body: 'Real-time visibility into the status of your blood request from dispatch to arrival.',
     icon: 'tracking',
+    eyebrow: 'Live Status',
     tone: 'primary',
   },
   {
     title: 'Built-in Messaging',
     body: 'Secure, encrypted communication between requesters and potential donors.',
     icon: 'message',
+    eyebrow: 'Direct Contact',
     tone: 'danger',
   },
   {
     title: 'Verified Workflow',
     body: 'Rigorous multi-step verification process ensuring donor medical eligibility.',
     icon: 'shield',
+    eyebrow: 'Safety Layer',
     tone: 'primary',
   },
   {
     title: 'Location Sharing',
     body: 'Privacy-first GPS mapping to coordinate the fastest donation logistics.',
     icon: 'map',
+    eyebrow: 'Map Context',
     tone: 'danger',
   },
   {
     title: 'Emergency Broadcast',
     body: 'Urgent blood alerts can be pushed by city and blood type so the right donors are reached quickly.',
     icon: 'broadcast',
+    eyebrow: 'Rapid Outreach',
     tone: 'primary',
   },
 ]
@@ -51,14 +57,17 @@ const steps = [
   {
     title: 'Create Account',
     body: 'Register once and use the same profile across mobile and web.',
+    eyebrow: 'Set Up',
   },
   {
     title: 'Request or Donate',
     body: 'Post a request or volunteer as an available donor in your area.',
+    eyebrow: 'Take Action',
   },
   {
     title: 'Connect & Save Lives',
     body: 'Coordinate faster and complete blood donations safely.',
+    eyebrow: 'Respond Fast',
   },
 ]
 
@@ -177,7 +186,7 @@ function LandingPage() {
   const [infoModal, setInfoModal] = useState<InfoModalType | null>(null)
 
   useEffect(() => {
-    const ids = ['home', 'features', 'about-us', 'how', 'how-donate', 'city-availability']
+    const ids = ['home', 'features', 'about-us', 'how', 'how-donate', 'city-availability', 'contact']
     const sections = ids
       .map((id) => document.getElementById(id))
       .filter((item): item is HTMLElement => Boolean(item))
@@ -295,6 +304,31 @@ function LandingPage() {
     target.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  useEffect(() => {
+    const updateActiveSectionFromScroll = () => {
+      const footer = document.getElementById('contact')
+      if (footer) {
+        const footerTop = footer.getBoundingClientRect().top
+        if (footerTop <= window.innerHeight * 0.42) {
+          setActiveSection('contact')
+          return
+        }
+      }
+
+      const features = document.getElementById('features')
+      if (features) {
+        const rect = features.getBoundingClientRect()
+        if (rect.top <= 120 && rect.bottom >= window.innerHeight * 0.45) {
+          setActiveSection('features')
+        }
+      }
+    }
+
+    window.addEventListener('scroll', updateActiveSectionFromScroll, { passive: true })
+    updateActiveSectionFromScroll()
+    return () => window.removeEventListener('scroll', updateActiveSectionFromScroll)
+  }, [])
+
   const filteredCityCounts = useMemo(() => {
     const query = cityQuery.trim().toLowerCase()
     if (!query) return []
@@ -314,6 +348,34 @@ function LandingPage() {
   }, [selectedCity, bloodTypeFilter, bloodTypeCounts])
 
   const citySuggestions = useMemo(() => getPhilippinePlaceSuggestions(cityQuery, 12), [cityQuery])
+
+  const availabilityStory = useMemo(() => {
+    if (!selectedCity) {
+      return {
+        title: 'Choose a city or municipality to reveal live totals.',
+        body: 'Use the availability board to spot underserved locations before sending donors or creating a request.',
+      }
+    }
+
+    if (filteredTotals.requests > filteredTotals.donors) {
+      return {
+        title: 'Demand is currently outpacing visible donor supply.',
+        body: 'This location may need faster outreach and more active donor participation to respond smoothly.',
+      }
+    }
+
+    if (filteredTotals.donors > 0) {
+      return {
+        title: 'Visible donor coverage is available in this area.',
+        body: 'Guests can monitor totals here, then log in to request blood, coordinate, or volunteer as a donor.',
+      }
+    }
+
+    return {
+      title: 'No live donor coverage is visible yet.',
+      body: 'This may be a good place to focus recruitment, awareness, and donor registration efforts.',
+    }
+  }, [filteredTotals.donors, filteredTotals.requests, selectedCity])
 
   const infoModalMeta: Record<InfoModalType, { title: string; paragraphs: string[] }> = {
     privacy: {
@@ -445,33 +507,57 @@ function LandingPage() {
         </section>
 
         <section className="how capabilities-section" id="features">
-          <div className="section-head section-head-centered reveal">
-            <h2>Life-saving infrastructure.</h2>
-            <p className="features-subtitle">Advanced tools designed for clinical precision and human urgency.</p>
-          </div>
-          <div className="capability-grid">
-            {capabilities.map((item) => (
-              <article className={`capability-card reveal capability-card-${item.tone}`} key={item.title}>
-                <span className="capability-icon" aria-hidden="true">
-                  <CapabilityIcon icon={item.icon} />
-                </span>
-                <h3>{item.title}</h3>
-                <p>{item.body}</p>
-              </article>
-            ))}
+          <div className="capabilities-shell">
+            <div className="section-head capabilities-lead reveal">
+              <p className="kicker">FEATURES</p>
+              <h2>Tools built for emergency coordination, not ordinary chat.</h2>
+              <p className="features-subtitle">
+                Bloodlink keeps the lower half of the response flow focused on what matters most: who is available,
+                where they are, and how fast people can move safely.
+              </p>
+              <div className="capabilities-highlights" aria-label="Platform highlights">
+                <span>Location-aware matching</span>
+                <span>Verified donor workflow</span>
+                <span>Secure communication</span>
+              </div>
+            </div>
+            <div className="capability-grid">
+              {capabilities.map((item) => (
+                <article className={`capability-card reveal capability-card-${item.tone}`} key={item.title}>
+                  <div className="capability-card-top">
+                    <span className="capability-icon" aria-hidden="true">
+                      <CapabilityIcon icon={item.icon} />
+                    </span>
+                    <span className="capability-pill">{item.eyebrow}</span>
+                  </div>
+                  <div className="capability-card-body">
+                    <h3>{item.title}</h3>
+                    <p>{item.body}</p>
+                  </div>
+                  <span className="capability-card-accent" aria-hidden="true" />
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 
         <section className="how how-steps-spotlight" id="how">
-          <div className="section-head reveal">
-            <p className="kicker">HOW BLOODLINK WORKS</p>
-            <h2>Three steps to save a life.</h2>
-            <p className="how-steps-subtitle">Simplified logistics for complex emergencies.</p>
+          <div className="section-head section-head-split reveal">
+            <div>
+              <p className="kicker">HOW BLOODLINK WORKS</p>
+              <h2>Three steps to save a life.</h2>
+            </div>
+            <p className="how-steps-subtitle">
+              Bloodlink turns a stressful chain of calls and posts into one guided flow for requesters and donors.
+            </p>
           </div>
           <div className="steps how-steps-grid">
             {steps.map((item, index) => (
               <article className="step-card step-card-dark reveal" key={item.title}>
-                <span className="step-index step-index-ghost">{index + 1}</span>
+                <div className="step-card-meta">
+                  <span className="step-chip">{item.eyebrow}</span>
+                  <span className="step-index step-index-ghost">{String(index + 1).padStart(2, '0')}</span>
+                </div>
                 <h3>{item.title}</h3>
                 <p>{item.body}</p>
               </article>
@@ -480,16 +566,32 @@ function LandingPage() {
         </section>
 
         <section className="how-donate reveal" id="how-donate">
-          <HowToDonateFaq />
+          <div className="donate-faq-frame">
+            <aside className="donate-faq-aside">
+              <p className="kicker">FOR DONORS</p>
+              <h2>Know the basics before you volunteer.</h2>
+              <p>
+                Clear, simple answers help first-time donors feel prepared, reduce hesitation, and keep urgent
+                responses moving.
+              </p>
+              <div className="donate-faq-tags" aria-label="Donation FAQ topics">
+                <span>Eligibility</span>
+                <span>Safety</span>
+                <span>Recovery</span>
+              </div>
+            </aside>
+            <HowToDonateFaq />
+          </div>
         </section>
 
         <section className="how realtime-availability-section" id="city-availability">
           <div className="realtime-layout">
             <aside className="realtime-search-panel reveal">
-              <h2>Real-time Availability</h2>
+              <p className="kicker">CITY AVAILABILITY</p>
+              <h2>See the local pulse before you coordinate.</h2>
               <p>
-                Search across cities in the Philippines to find available donors or view current emergency blood
-                requests.
+                Search cities and municipalities across the Philippines to compare donor visibility with live request
+                demand.
               </p>
               <div className="availability-badges">
                 <span className="availability-badge">Public Visibility</span>
@@ -526,16 +628,23 @@ function LandingPage() {
                   </select>
                 </div>
               </div>
+              <div className="realtime-panel-note">
+                <strong>{statsLoading ? 'Refreshing locality coverage...' : `${cityCounts.length.toLocaleString()} localities indexed`}</strong>
+                <span>Counts reflect visible donor availability and active blood request demand.</span>
+              </div>
             </aside>
 
             <div className="realtime-results-panel reveal">
               {statsLoading ? <p className="panel-sub">Loading city and municipality data...</p> : null}
               {!statsLoading && cityQuery.trim() && filteredCityCounts.length === 0 ? <p className="panel-sub">No matching city or municipality found.</p> : null}
               <div className="availability-summary-head">
-                <h3>{selectedCity?.cityLabel || "Choose a city to view totals"}</h3>
-                <p>
-                  Guests can view donor and request totals. Login is required to request blood or accept donation tasks.
-                </p>
+                <div>
+                  <span className="availability-panel-label">
+                    {selectedCity ? 'Selected city or municipality' : 'Search to reveal live totals'}
+                  </span>
+                  <h3>{selectedCity?.cityLabel || 'Choose a city to view totals'}</h3>
+                </div>
+                <span className="availability-filter-pill">{bloodTypeFilter || 'All blood types'}</span>
               </div>
               <div className="realtime-summary-grid">
                 <article className="summary-stat-card summary-stat-card-danger">
@@ -547,6 +656,10 @@ function LandingPage() {
                   <p>{filteredTotals.donors}</p>
                 </article>
               </div>
+              <article className="availability-insight-card">
+                <strong>{availabilityStory.title}</strong>
+                <p>{availabilityStory.body}</p>
+              </article>
               <div className="availability-cta-row">
                 <Link to="/login" className="ghost-btn btn-link">Login to Request Blood</Link>
                 <Link to="/register" className="solid-btn btn-link">Join as Donor</Link>
@@ -558,7 +671,8 @@ function LandingPage() {
         <section className="how about-mission-section" id="about-us">
           <div className="about-mission-grid">
             <article className="about-mission-copy reveal">
-              <h2>Our Compassionate Mission</h2>
+              <p className="kicker">ABOUT US</p>
+              <h2>Built for the moments when every minute matters.</h2>
               <p>
                 Bloodlink was founded on a simple realization: the technology exists to order a meal in minutes, but
                 finding life-saving blood often takes hours of frantic social media posts and phone calls.
@@ -571,10 +685,21 @@ function LandingPage() {
                 Our goal is practical and human: reduce waiting time, improve trust, and make blood donation
                 coordination safer for everyone involved.
               </p>
+              <div className="about-mission-quote">
+                <span>Why Bloodlink exists</span>
+                <p>When families are already under pressure, the platform should reduce chaos instead of adding more of it.</p>
+              </div>
             </article>
 
             <article className="about-mission-visual reveal">
-              <p>&quot;In the moments where time stands still, Bloodlink makes the move.&quot;</p>
+              <div className="about-mission-highlight">
+                <span className="about-mission-highlight-label">What we protect</span>
+                <h3>Fast response, verified coordination, and community trust.</h3>
+                <p>
+                  Bloodlink helps donors, requesters, and hospitals work from the same live picture so urgent cases can
+                  move with less confusion.
+                </p>
+              </div>
               <div className="about-mission-pillars">
                 <div className="about-mission-pillar">
                   <h4>Speed With Purpose</h4>
@@ -594,15 +719,48 @@ function LandingPage() {
         </section>
 
         <section className="cta-banner reveal">
-          <div>
+          <div className="cta-copy">
+            <p className="kicker cta-kicker">START WITH ONE ACCOUNT</p>
             <h2>Ready to make a difference today?</h2>
             <p>Create your account and start saving lives with Bloodlink.</p>
+          </div>
+          <div className="cta-points" aria-label="Call to action highlights">
+            <span>Request help faster</span>
+            <span>Volunteer locally</span>
+            <span>Track live status</span>
           </div>
           <Link to="/register" className="solid-btn btn-link cta-link">Create Account</Link>
         </section>
       </main>
 
       <footer className="footer" id="contact">
+        <div className="footer-contact-band">
+          <div className="footer-contact-copy">
+            <p className="kicker">CONTACT US</p>
+            <h3>Reach Bloodlink for support, coordination, or platform feedback.</h3>
+            <p>
+              We help with donor verification, account questions, request concerns, and general support for the
+              platform.
+            </p>
+          </div>
+          <div className="footer-contact-cards">
+            <a className="footer-contact-card" href="mailto:Bloodlink@gmail.com?subject=Bloodlink%20Support">
+              <span className="footer-contact-label">Email</span>
+              <strong>Bloodlink@gmail.com</strong>
+              <span>Best for support requests, screenshots, and detailed concerns.</span>
+            </a>
+            <a className="footer-contact-card" href="tel:09959281914">
+              <span className="footer-contact-label">Phone</span>
+              <strong>09959281914</strong>
+              <span>Use phone support for urgent coordination and immediate follow-up.</span>
+            </a>
+            <button type="button" className="footer-contact-card footer-contact-card-button" onClick={() => setInfoModal('support')}>
+              <span className="footer-contact-label">Support Center</span>
+              <strong>Need a quick guide?</strong>
+              <span>Open our support details for account access, reports, and request updates.</span>
+            </button>
+          </div>
+        </div>
         <div className="footer-main">
           <div className="footer-column footer-brand-column">
             <h3>Bloodlink</h3>
@@ -617,25 +775,29 @@ function LandingPage() {
             </div>
           </div>
           <div className="footer-column">
-            <h4>Quick Links</h4>
+            <h4>Resources</h4>
             <div className="footer-links">
               <button type="button" className="footer-link-btn" onClick={() => setInfoModal('privacy')}>Privacy Policy</button>
               <button type="button" className="footer-link-btn" onClick={() => setInfoModal('terms')}>Terms of Service</button>
-              <button type="button" className="footer-link-btn" onClick={() => setInfoModal('contact')}>Contact Us</button>
+              <button type="button" className="footer-link-btn" onClick={() => setInfoModal('support')}>Support Center</button>
             </div>
           </div>
           <div className="footer-column">
-            <h4>Support</h4>
+            <h4>Navigate</h4>
             <div className="footer-support-list">
-              <a href="mailto:Bloodlink@gmail.com"><span aria-hidden="true">✉</span> Bloodlink@gmail.com</a>
-              <a href="tel:09959281914"><span aria-hidden="true">☎</span> 09959281914</a>
+              <a href="#features" onClick={(event) => { event.preventDefault(); scrollToSection('features') }}>
+                <span aria-hidden="true">◌</span> Platform Features
+              </a>
               <a href="#city-availability" onClick={(event) => { event.preventDefault(); scrollToSection('city-availability') }}>
-                <span aria-hidden="true">◌</span> 24/7 Emergency Response
+                <span aria-hidden="true">◌</span> City Availability
+              </a>
+              <a href="#home" onClick={(event) => { event.preventDefault(); scrollToSection('home') }}>
+                <span aria-hidden="true">◌</span> Back to Top
               </a>
             </div>
           </div>
         </div>
-        <p className="footer-bottom">© 2026 BloodLink. All rights reserved.</p>
+        <p className="footer-bottom">© 2026 LifeCycle. All rights reserved.</p>
       </footer>
 
       {infoModal ? (

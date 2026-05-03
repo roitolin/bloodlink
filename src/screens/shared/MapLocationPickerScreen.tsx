@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { CommonActions } from "@react-navigation/native";
 import { View, Text, StyleSheet, Alert, ActivityIndicator, Pressable } from "react-native";
 import { Button, TextInput } from "react-native-paper";
 import * as Location from "expo-location";
@@ -6,7 +7,10 @@ import OsmMapEmbed from "../../components/OsmMapEmbed";
 import {
   ReverseGeocodedAddress,
   formatAddressLabel,
+  getAddressLocalityLabel,
+  mergeReverseGeocodedAddresses,
   normalizeNominatimAddress,
+  normalizeExpoAddress,
 } from "../../utils/locationAddress";
 
 type SelectedLocation = {
@@ -34,7 +38,7 @@ const reverseGeocodeWithNominatim = async (location: SelectedLocation): Promise<
   const response = await fetch(url, {
     headers: {
       "Accept-Language": "en",
-      "User-Agent": "BloodLink/1.0",
+      "User-Agent": "LifeCycle/1.0",
     },
   });
 
@@ -50,8 +54,20 @@ const reverseGeocodeWithNominatim = async (location: SelectedLocation): Promise<
   };
 };
 
+const reverseGeocodeWithExpo = async (location: SelectedLocation): Promise<ReverseGeocodedAddress | null> => {
+  const [rawAddress] = await Location.reverseGeocodeAsync(location);
+  if (!rawAddress) return null;
+
+  const normalized = normalizeExpoAddress(rawAddress);
+  return {
+    ...normalized,
+    formattedAddress: formatAddressLabel(normalized),
+  };
+};
+
 export default function MapLocationPickerScreen({ navigation, route }: any) {
   const returnScreen = route.params?.returnScreen;
+  const returnRouteKey = route.params?.returnRouteKey;
   const initialLocation = route.params?.initialLocation as SelectedLocation | null | undefined;
   const draft = route.params?.draft || null;
 
@@ -132,22 +148,44 @@ export default function MapLocationPickerScreen({ navigation, route }: any) {
     try {
       let selectedAddress: ReverseGeocodedAddress | null = null;
       try {
-        selectedAddress = await reverseGeocodeWithNominatim(selectedLocation);
+        const [expoAddress, nominatimAddress] = await Promise.all([
+          reverseGeocodeWithExpo(selectedLocation).catch(() => null),
+          reverseGeocodeWithNominatim(selectedLocation).catch(() => null),
+        ]);
+        selectedAddress = mergeReverseGeocodedAddresses(expoAddress, nominatimAddress);
       } catch {
         selectedAddress = null;
       }
 
+      const autoLocality = getAddressLocalityLabel(selectedAddress);
+      const nextParams = {
+        selectedLocation,
+        selectedCity: autoLocality || "",
+        selectedLocationLabel:
+          selectedAddress?.formattedAddress ||
+          `Lat: ${selectedLocation.latitude.toFixed(6)} | Lng: ${selectedLocation.longitude.toFixed(6)}`,
+        selectedAddress,
+        draft: draft
+          ? {
+              ...draft,
+              city: autoLocality || draft?.city || "",
+            }
+          : draft,
+        fromMapPicker: Date.now(),
+      };
+
+      if (returnRouteKey) {
+        navigation.dispatch({
+          ...CommonActions.setParams(nextParams),
+          source: returnRouteKey,
+        });
+        navigation.goBack();
+        return;
+      }
+
       navigation.navigate({
         name: returnScreen,
-        params: {
-          selectedLocation,
-          selectedLocationLabel:
-            selectedAddress?.formattedAddress ||
-            `Lat: ${selectedLocation.latitude.toFixed(6)} | Lng: ${selectedLocation.longitude.toFixed(6)}`,
-          selectedAddress,
-          draft,
-          fromMapPicker: Date.now(),
-        },
+        params: nextParams,
         merge: true,
       });
     } finally {
@@ -162,7 +200,7 @@ export default function MapLocationPickerScreen({ navigation, route }: any) {
           <Text style={styles.backLinkText}>{"< Back"}</Text>
         </Pressable>
       )}
-      <Text style={styles.caption}>Tap directly on the map to set your search pin.</Text>
+      <Text style={styles.caption}>Tap directly on the map to set your pin.</Text>
       <Text style={styles.coords}>{locationLabel}</Text>
 
       <View style={styles.controls}>

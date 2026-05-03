@@ -22,7 +22,7 @@ import { auth, db } from "../../services/firebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
 import { useResponsive } from "../../utils/responsive";
 
-export default function RegisterScreen({ navigation }: any) {
+export default function RegisterScreen({ navigation, route }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -74,12 +74,22 @@ export default function RegisterScreen({ navigation }: any) {
         createdAt: new Date(),
       });
 
-      await sendEmailVerification(user);
-      await auth.signOut();
+      let verificationSent = false;
+      try {
+        await sendEmailVerification(user);
+        verificationSent = true;
+      } catch (verificationError: any) {
+        const verificationCode = verificationError?.code || "";
+        if (verificationCode !== "auth/too-many-requests" && verificationCode !== "auth/network-request-failed") {
+          throw verificationError;
+        }
+      }
 
       Alert.alert(
         "Registration Successful",
-        "A verification email has been sent. Please verify before logging in."
+        verificationSent
+          ? "A verification email has been sent. Please check your inbox and verify your account."
+          : "Your account was created, but we could not send the verification email yet. Please use Resend Verification Email after a short wait."
       );
       navigation.navigate("VerifyEmail", { email: email.trim() });
     } catch (error: any) {
@@ -133,11 +143,9 @@ export default function RegisterScreen({ navigation }: any) {
                 },
               ]}
             >
-              <Text style={styles.introKicker}>Join BloodLink</Text>
-              <Text style={styles.introTitle}>Create Your Account</Text>
-              <Text style={styles.introBody}>
-                Complete your profile once and start helping requesters or creating blood requests in minutes.
-              </Text>
+              <Text style={styles.introKicker}>Create Account</Text>
+              <Text style={styles.introTitle}>Join First</Text>
+              <Text style={styles.introBody}>Create your account first, then continue to LifeCycle after signing in.</Text>
             </Animated.View>
           )}
 
@@ -171,7 +179,7 @@ export default function RegisterScreen({ navigation }: any) {
             )}
             <Image source={require("../../../assets/Logo.png")} style={styles.logo} resizeMode="contain" />
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Set up your donor/requester profile in one step.</Text>
+            <Text style={styles.subtitle}>Register first so you can access LifeCycle after signing in.</Text>
 
             <TextInput
               ref={fullNameRef}

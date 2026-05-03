@@ -128,9 +128,21 @@ export default function ConversationsList({ navigation }: any) {
 
     const asBlockerQuery = query(collection(db, "user_blocks"), where("blockerId", "==", userId));
     const asBlockedQuery = query(collection(db, "user_blocks"), where("blockedId", "==", userId));
+    const handleBlockListenerError = (error: any) => {
+      console.warn("Blocked users listener warning:", error?.message || error);
+      setBlockedUserIds(new Set());
+    };
 
-    const unsubA = onSnapshot(asBlockerQuery, (snapshot) => syncBlockedIds(snapshot, "asBlocker"));
-    const unsubB = onSnapshot(asBlockedQuery, (snapshot) => syncBlockedIds(snapshot, "asBlocked"));
+    const unsubA = onSnapshot(
+      asBlockerQuery,
+      (snapshot) => syncBlockedIds(snapshot, "asBlocker"),
+      handleBlockListenerError
+    );
+    const unsubB = onSnapshot(
+      asBlockedQuery,
+      (snapshot) => syncBlockedIds(snapshot, "asBlocked"),
+      handleBlockListenerError
+    );
 
     return () => {
       unsubA();

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { collection, deleteDoc, doc, getDocs, Timestamp, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, getDocs, Timestamp, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import { getConversationId, normalize } from './adminHelpers'
 
 type UserItem = {
@@ -21,18 +22,28 @@ function AdminUsersPage() {
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState('')
   const [items, setItems] = useState<UserItem[]>([])
+  const [viewerRole, setViewerRole] = useState('user')
   const [queryText, setQueryText] = useState('')
   const [banTarget, setBanTarget] = useState<UserItem | null>(null)
   const [banReasonInput, setBanReasonInput] = useState('')
   const [banDaysInput, setBanDaysInput] = useState('7')
+  const { openConfirm, confirmDialog } = useConfirmDialog()
 
   const load = async () => {
     setLoading(true)
     try {
+      const currentUser = auth.currentUser
+      let nextViewerRole = 'user'
+      if (currentUser) {
+        const viewerSnap = await getDoc(doc(db, 'users', currentUser.uid))
+        nextViewerRole = normalize(viewerSnap.data()?.role || 'user')
+      }
+
       const snapshot = await getDocs(collection(db, 'users'))
       const list = snapshot.docs
         .map((itemDoc) => ({ id: itemDoc.id, ...(itemDoc.data() as Omit<UserItem, 'id'>) }))
-        .filter((item) => normalize(item.role) !== 'admin')
+        .filter((item) => nextViewerRole === 'super_admin' || !normalize(item.role).includes('admin'))
+      setViewerRole(nextViewerRole)
       setItems(list)
     } finally {
       setLoading(false)
@@ -80,47 +91,78 @@ function AdminUsersPage() {
     const reason = banReasonInput.trim()
     if (!reason || !Number.isFinite(days) || days <= 0) return
 
+    const target = banTarget
     const bannedUntilDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
-    setSavingId(banTarget.id)
-    try {
-      await updateDoc(doc(db, 'users', banTarget.id), {
-        disabled: true,
-        banReason: reason,
-        bannedAt: new Date(),
-        bannedBy: auth.currentUser?.uid || null,
-        bannedUntil: Timestamp.fromDate(bannedUntilDate),
-      })
-      closeBanModal()
-      await load()
-    } finally {
-      setSavingId('')
-    }
+    closeBanModal()
+    openConfirm({
+      title: 'Ban this account?',
+      message: `You are about to ban ${target.email || target.fullName || 'this user'}.`,
+      details: [
+        `Duration: ${days} day(s)`,
+        `Ban ends: ${bannedUntilDate.toLocaleString()}`,
+        `Reason: ${reason}`,
+      ],
+      tone: 'danger',
+      confirmLabel: 'Apply Ban',
+      onConfirm: async () => {
+        setSavingId(target.id)
+        try {
+          await updateDoc(doc(db, 'users', target.id), {
+            disabled: true,
+            banReason: reason,
+            bannedAt: new Date(),
+            bannedBy: auth.currentUser?.uid || null,
+            bannedUntil: Timestamp.fromDate(bannedUntilDate),
+          })
+          await load()
+        } finally {
+          setSavingId('')
+        }
+      },
+    })
   }
 
   const unbanUser = async (item: UserItem) => {
-    setSavingId(item.id)
-    try {
-      await updateDoc(doc(db, 'users', item.id), {
-        disabled: false,
-        banReason: null,
-        bannedBy: null,
-        bannedAt: null,
-        bannedUntil: null,
-      })
-      await load()
-    } finally {
-      setSavingId('')
-    }
+    openConfirm({
+      title: 'Remove this ban?',
+      message: `This will restore access for ${item.email || item.fullName || 'this user'}.`,
+      tone: 'warning',
+      confirmLabel: 'Unban User',
+      onConfirm: async () => {
+        setSavingId(item.id)
+        try {
+          await updateDoc(doc(db, 'users', item.id), {
+            disabled: false,
+            banReason: null,
+            bannedBy: null,
+            bannedAt: null,
+            bannedUntil: null,
+          })
+          await load()
+        } finally {
+          setSavingId('')
+        }
+      },
+    })
   }
 
   const deleteUser = async (item: UserItem) => {
-    setSavingId(item.id)
-    try {
-      await deleteDoc(doc(db, 'users', item.id))
-      await load()
-    } finally {
-      setSavingId('')
-    }
+    openConfirm({
+      title: 'Delete this account record?',
+      message: `This will remove the Firestore profile for ${item.email || item.fullName || 'this user'}.`,
+      details: ['Authentication credentials are not removed by this action.'],
+      tone: 'danger',
+      confirmLabel: 'Delete User',
+      onConfirm: async () => {
+        setSavingId(item.id)
+        try {
+          await deleteDoc(doc(db, 'users', item.id))
+          await load()
+        } finally {
+          setSavingId('')
+        }
+      },
+    })
   }
 
   const openChat = async (item: UserItem) => {
@@ -142,7 +184,11 @@ function AdminUsersPage() {
   return (
     <section className="panel">
       <h2>User Management</h2>
-      <p className="panel-sub">Manage user status and contact users directly.</p>
+      <p className="panel-sub">
+        {viewerRole === 'super_admin'
+          ? 'Manage blood users, funeral users, and admin accounts directly.'
+          : 'Manage user status and contact users directly.'}
+      </p>
 
       <div className="donor-filters donor-filters-advanced">
         <div>
@@ -236,6 +282,7 @@ function AdminUsersPage() {
           </div>
         </div>
       ) : null}
+      {confirmDialog}
     </section>
   )
 }

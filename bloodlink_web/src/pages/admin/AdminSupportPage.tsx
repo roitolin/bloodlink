@@ -9,6 +9,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
@@ -73,104 +74,125 @@ function AdminSupportPage() {
   const activeConversationId = searchParams.get('conversation') || ''
   const activeConversation = conversations.find((item) => item.id === activeConversationId) || null
 
-  const loadConversations = useCallback(async () => {
+  const hydrateConversationMeta = useCallback(async (list: Conversation[]) => {
+    if (!adminId) return
+
+    const otherIds = Array.from(
+      new Set(
+        list
+          .map((item) => item.participants?.find((participantId) => participantId !== adminId))
+          .filter(Boolean) as string[],
+      ),
+    )
+
+    const nextUserInfo: Record<string, UserInfo> = {}
+    await Promise.all(
+      otherIds.map(async (otherId) => {
+        try {
+          const userSnap = await getDoc(doc(db, 'users', otherId))
+          nextUserInfo[otherId] = (userSnap.data() as UserInfo) || {}
+        } catch {
+          nextUserInfo[otherId] = {}
+        }
+      }),
+    )
+    setUserInfoMap(nextUserInfo)
+
+    const nextUnread: Record<string, number> = {}
+    await Promise.all(
+      list.map(async (conversationItem) => {
+        const otherId = conversationItem.participants.find((participantId) => participantId !== adminId)
+        if (!otherId) {
+          nextUnread[conversationItem.id] = 0
+          return
+        }
+
+        const messagesSnap = await getDocs(
+          query(collection(db, 'conversations', conversationItem.id, 'messages'), where('senderId', '==', otherId)),
+        )
+        let unread = 0
+        messagesSnap.forEach((messageDoc) => {
+          const messageData = messageDoc.data() as { readBy?: string[] }
+          if (!Array.isArray(messageData.readBy) || !messageData.readBy.includes(adminId)) unread += 1
+        })
+        nextUnread[conversationItem.id] = unread
+      }),
+    )
+    setUnreadCounts(nextUnread)
+  }, [adminId])
+
+  useEffect(() => {
     if (!adminId) {
       setConversations([])
+      setMessages([])
+      setUnreadCounts({})
+      setUserInfoMap({})
       setLoading(false)
       return
     }
 
     setLoading(true)
-    try {
-      const snapshot = await getDocs(query(collection(db, 'conversations'), where('participants', 'array-contains', adminId)))
-      const list = snapshot.docs
-        .map((itemDoc) => ({ id: itemDoc.id, ...(itemDoc.data() as Omit<Conversation, 'id'>) }))
-        .filter((item) => !item.hiddenFor?.includes(adminId))
-        .sort((a, b) => toMillis(b.updatedAt) - toMillis(a.updatedAt))
+    const conversationsQuery = query(collection(db, 'conversations'), where('participants', 'array-contains', adminId))
+    const unsubscribe = onSnapshot(
+      conversationsQuery,
+      (snapshot) => {
+        const list = snapshot.docs
+          .map((itemDoc) => ({ id: itemDoc.id, ...(itemDoc.data() as Omit<Conversation, 'id'>) }))
+          .filter((item) => !item.hiddenFor?.includes(adminId))
+          .sort((a, b) => toMillis(b.updatedAt) - toMillis(a.updatedAt))
 
-      setConversations(list)
+        setConversations(list)
+        void hydrateConversationMeta(list)
 
-      const otherIds = Array.from(
-        new Set(
-          list
-            .map((item) => item.participants?.find((participantId) => participantId !== adminId))
-            .filter(Boolean) as string[],
-        ),
-      )
-
-      const nextUserInfo: Record<string, UserInfo> = {}
-      await Promise.all(
-        otherIds.map(async (otherId) => {
-          try {
-            const userSnap = await getDoc(doc(db, 'users', otherId))
-            nextUserInfo[otherId] = (userSnap.data() as UserInfo) || {}
-          } catch {
-            nextUserInfo[otherId] = {}
-          }
-        }),
-      )
-      setUserInfoMap(nextUserInfo)
-
-      const nextUnread: Record<string, number> = {}
-      await Promise.all(
-        list.map(async (conversationItem) => {
-          const otherId = conversationItem.participants.find((participantId) => participantId !== adminId)
-          if (!otherId) {
-            nextUnread[conversationItem.id] = 0
-            return
-          }
-
-          const messagesSnap = await getDocs(query(collection(db, 'conversations', conversationItem.id, 'messages'), where('senderId', '==', otherId)))
-          let unread = 0
-          messagesSnap.forEach((messageDoc) => {
-            const messageData = messageDoc.data() as { readBy?: string[] }
-            if (!Array.isArray(messageData.readBy) || !messageData.readBy.includes(adminId)) unread += 1
+        if (activeConversationId && !list.some((item) => item.id === activeConversationId)) {
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev)
+            next.delete('conversation')
+            return next
           })
-          nextUnread[conversationItem.id] = unread
-        }),
-      )
-      setUnreadCounts(nextUnread)
+        } else if (!activeConversationId && list[0]?.id) {
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev)
+            next.set('conversation', list[0].id)
+            return next
+          })
+        }
 
-      if (!activeConversationId && list[0]?.id) {
-        setSearchParams((prev) => {
-          const next = new URLSearchParams(prev)
-          next.set('conversation', list[0].id)
-          return next
-        })
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [activeConversationId, adminId, setSearchParams])
+        setLoading(false)
+      },
+      () => {
+        setConversations([])
+        setUnreadCounts({})
+        setLoading(false)
+      },
+    )
 
-  const loadMessages = async (conversationId: string) => {
-    if (!conversationId) {
-      setMessages([])
-      return
-    }
-
-    setLoadingMessages(true)
-    try {
-      const snapshot = await getDocs(query(collection(db, 'conversations', conversationId, 'messages'), orderBy('timestamp', 'asc')))
-      const list = snapshot.docs.map((itemDoc) => ({ id: itemDoc.id, ...(itemDoc.data() as Omit<ChatMessage, 'id'>) }))
-      setMessages(list)
-    } catch {
-      setMessages([])
-    } finally {
-      setLoadingMessages(false)
-    }
-  }
-
-  useEffect(() => {
-    void loadConversations()
-  }, [loadConversations])
+    return () => unsubscribe()
+  }, [activeConversationId, adminId, hydrateConversationMeta, setSearchParams])
 
   useEffect(() => {
     if (!activeConversationId) {
       setMessages([])
+      setLoadingMessages(false)
       return
     }
-    void loadMessages(activeConversationId)
+
+    setLoadingMessages(true)
+    const messagesQuery = query(collection(db, 'conversations', activeConversationId, 'messages'), orderBy('timestamp', 'asc'))
+    const unsubscribe = onSnapshot(
+      messagesQuery,
+      (snapshot) => {
+        const list = snapshot.docs.map((itemDoc) => ({ id: itemDoc.id, ...(itemDoc.data() as Omit<ChatMessage, 'id'>) }))
+        setMessages(list)
+        setLoadingMessages(false)
+      },
+      () => {
+        setMessages([])
+        setLoadingMessages(false)
+      },
+    )
+
+    return () => unsubscribe()
   }, [activeConversationId])
 
   const conversationItems = useMemo(() => {
@@ -210,8 +232,6 @@ function AdminSupportPage() {
       await updateDoc(conversationRef, { 'lastMessage.readBy': arrayRemove(adminId) })
     }
 
-    await loadConversations()
-    if (conversationId === activeConversationId) await loadMessages(conversationId)
   }
 
   const deleteConversation = async (conversationId: string) => {
@@ -235,7 +255,6 @@ function AdminSupportPage() {
         return next
       })
     }
-    await loadConversations()
   }
 
   const sendMessage = async () => {
@@ -253,6 +272,10 @@ function AdminSupportPage() {
 
       await updateDoc(doc(db, 'conversations', activeConversationId), {
         updatedAt: serverTimestamp(),
+        hiddenFor: arrayRemove(
+          adminId,
+          activeConversation?.participants.find((participantId) => participantId !== adminId) || '',
+        ),
         lastMessage: {
           text,
           senderId: adminId,
@@ -261,9 +284,20 @@ function AdminSupportPage() {
         },
       })
 
+      const receiverId = activeConversation?.participants.find((participantId) => participantId !== adminId) || ''
+      if (receiverId) {
+        await addDoc(collection(db, 'notifications'), {
+          userId: receiverId,
+          type: 'support_message',
+          title: 'New Support Reply',
+          body: text.length > 100 ? `${text.slice(0, 100)}...` : text,
+          read: false,
+          createdAt: serverTimestamp(),
+          data: { conversationId: activeConversationId, otherUserId: adminId },
+        })
+      }
+
       setChatInput('')
-      await loadMessages(activeConversationId)
-      await loadConversations()
     } finally {
       setSending(false)
     }

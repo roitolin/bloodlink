@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth'
 import {
   addDoc,
+  arrayRemove,
   collection,
   doc,
   getDoc,
-  getDocs,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
@@ -78,10 +79,19 @@ function UserLayout() {
   const [threadMessages, setThreadMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
   const [termsAccepted, setTermsAccepted] = useState(true)
   const [termsChecked, setTermsChecked] = useState(false)
   const [savingTerms, setSavingTerms] = useState(false)
   const [termsConsentChecked, setTermsConsentChecked] = useState(false)
+  const [refreshNonce, setRefreshNonce] = useState(0)
+  const [refreshingView, setRefreshingView] = useState(false)
+  const [pullDistance, setPullDistance] = useState(0)
+  const mainRef = useRef<HTMLElement | null>(null)
+  const refreshTimerRef = useRef<number | null>(null)
+  const lastTapRef = useRef(0)
+  const touchStartYRef = useRef(0)
+  const touchPullEnabledRef = useRef(false)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
@@ -132,12 +142,35 @@ function UserLayout() {
   }, [location.pathname])
 
   useEffect(() => {
-    const loadConversations = async () => {
-      if (!messagesOpen || !user) return
+    if (!user) {
+      setUnreadNotificationCount(0)
+      return
+    }
+    const unreadQuery = query(
+      collection(db, 'notifications'),
+      where('userId', '==', user.uid),
+      where('read', '==', false),
+    )
+    const unsubscribe = onSnapshot(
+      unreadQuery,
+      (snapshot) => {
+        setUnreadNotificationCount(snapshot.size)
+      },
+      () => {
+        setUnreadNotificationCount(0)
+      },
+    )
+    return () => unsubscribe()
+  }, [user])
 
-      setLoadingMessages(true)
-      try {
-        const snapshot = await getDocs(query(collection(db, 'conversations'), where('participants', 'array-contains', user.uid)))
+  useEffect(() => {
+    if (!messagesOpen || !user) return
+
+    setLoadingMessages(true)
+    const conversationsQuery = query(collection(db, 'conversations'), where('participants', 'array-contains', user.uid))
+    const unsubscribe = onSnapshot(
+      conversationsQuery,
+      async (snapshot) => {
         const list = snapshot.docs.map((itemDoc) => ({ id: itemDoc.id, ...(itemDoc.data() as Omit<Conversation, 'id'>) }))
 
         list.sort((a, b) => {
@@ -174,32 +207,65 @@ function UserLayout() {
 
         setNameMap(nextMap)
         setConversationProfileMap(nextProfileMap)
-      } finally {
         setLoadingMessages(false)
-      }
-    }
+      },
+      () => {
+        setConversations([])
+        setLoadingMessages(false)
+      },
+    )
 
-    void loadConversations()
+    return () => unsubscribe()
   }, [messagesOpen, user])
 
-  const openConversation = async (id: string, title: string) => {
+  const openConversation = (id: string, title: string) => {
     setActiveConversation({ id, title })
-    setThreadLoading(true)
-    try {
-      const snapshot = await getDocs(query(collection(db, 'conversations', id, 'messages'), orderBy('timestamp', 'asc')))
-      const list = snapshot.docs.map((itemDoc) => ({ id: itemDoc.id, ...(itemDoc.data() as Omit<ChatMessage, 'id'>) }))
-      setThreadMessages(list)
-    } catch {
-      setThreadMessages([])
-    } finally {
-      setThreadLoading(false)
-    }
   }
+
+  useEffect(() => {
+    const search = new URLSearchParams(location.search)
+    if (search.get('openMessages') !== '1') return
+
+    const conversationId = search.get('conversation') || ''
+    const otherUserId = search.get('otherUserId') || ''
+    const title = (otherUserId && nameMap[otherUserId]) || 'Conversation'
+    setMessagesOpen(true)
+    if (conversationId) {
+      openConversation(conversationId, title)
+    }
+    navigate(location.pathname, { replace: true })
+  }, [location.pathname, location.search, nameMap, navigate])
+
+  useEffect(() => {
+    if (!messagesOpen || !activeConversation?.id) {
+      setThreadMessages([])
+      return
+    }
+
+    setThreadLoading(true)
+    const threadQuery = query(collection(db, 'conversations', activeConversation.id, 'messages'), orderBy('timestamp', 'asc'))
+    const unsubscribe = onSnapshot(
+      threadQuery,
+      (snapshot) => {
+        const list = snapshot.docs.map((itemDoc) => ({ id: itemDoc.id, ...(itemDoc.data() as Omit<ChatMessage, 'id'>) }))
+        setThreadMessages(list)
+        setThreadLoading(false)
+      },
+      () => {
+        setThreadMessages([])
+        setThreadLoading(false)
+      },
+    )
+
+    return () => unsubscribe()
+  }, [activeConversation?.id, messagesOpen])
 
   const sendMessage = async () => {
     if (!user || !activeConversation || !chatInput.trim() || sending) return
 
     const text = chatInput.trim()
+    const activeConversationItem = conversations.find((item) => item.id === activeConversation.id)
+    const otherUserId = activeConversationItem?.participants?.find((id) => id !== user.uid) || ''
     setSending(true)
     try {
       await addDoc(collection(db, 'conversations', activeConversation.id, 'messages'), {
@@ -210,6 +276,7 @@ function UserLayout() {
 
       await updateDoc(doc(db, 'conversations', activeConversation.id), {
         updatedAt: serverTimestamp(),
+        hiddenFor: arrayRemove(user.uid, otherUserId),
         lastMessage: {
           text,
           senderId: user.uid,
@@ -219,7 +286,6 @@ function UserLayout() {
       })
 
       setChatInput('')
-      await openConversation(activeConversation.id, activeConversation.title)
       setConversations((prev) => {
         const found = prev.find((item) => item.id === activeConversation.id)
         if (!found) return prev
@@ -248,6 +314,71 @@ function UserLayout() {
   const handleLogout = async () => {
     await signOut(auth)
     navigate('/')
+  }
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current !== null) {
+        window.clearTimeout(refreshTimerRef.current)
+      }
+    }
+  }, [])
+
+  const triggerContentRefresh = useCallback(() => {
+    setRefreshNonce(Date.now())
+    setRefreshingView(true)
+    if (refreshTimerRef.current !== null) {
+      window.clearTimeout(refreshTimerRef.current)
+    }
+    refreshTimerRef.current = window.setTimeout(() => {
+      setRefreshingView(false)
+    }, 700)
+  }, [])
+
+  const handleDoubleTapRefresh = () => {
+    const now = Date.now()
+    if (now - lastTapRef.current <= 420) {
+      lastTapRef.current = 0
+      triggerContentRefresh()
+      return
+    }
+    lastTapRef.current = now
+  }
+
+  const getCurrentScrollTop = () => {
+    const container = mainRef.current
+    if (container && container.scrollHeight > container.clientHeight) {
+      return container.scrollTop
+    }
+    return window.scrollY || document.documentElement.scrollTop || 0
+  }
+
+  const handleTouchStart = (event: TouchEvent<HTMLElement>) => {
+    if (event.touches.length !== 1) return
+    touchStartYRef.current = event.touches[0]?.clientY || 0
+    touchPullEnabledRef.current = getCurrentScrollTop() <= 2
+    if (touchPullEnabledRef.current) {
+      setPullDistance(0)
+    }
+  }
+
+  const handleTouchMove = (event: TouchEvent<HTMLElement>) => {
+    if (!touchPullEnabledRef.current || event.touches.length !== 1) return
+    const delta = (event.touches[0]?.clientY || 0) - touchStartYRef.current
+    if (delta <= 0) {
+      setPullDistance(0)
+      touchPullEnabledRef.current = false
+      return
+    }
+    setPullDistance(Math.min(120, delta * 0.55))
+  }
+
+  const handleTouchEnd = () => {
+    if (pullDistance >= 75) {
+      triggerContentRefresh()
+    }
+    setPullDistance(0)
+    touchPullEnabledRef.current = false
   }
 
   const acceptTerms = async () => {
@@ -334,6 +465,11 @@ function UserLayout() {
           <NavLink to="/app/notifications" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3C9.2 3 7 5.2 7 8V10.7L5.4 13.4A1 1 0 0 0 6.3 15H17.7A1 1 0 0 0 18.6 13.4L17 10.7V8C17 5.2 14.8 3 12 3Z" strokeWidth="1.8" /><path d="M10 18C10.4 19.2 11.1 20 12 20C12.9 20 13.6 19.2 14 18" strokeWidth="1.8" strokeLinecap="round" /></svg></span>
             <span className="sidebar-label">Notifications</span>
+            {unreadNotificationCount > 0 ? (
+              <span className="feed-badge-pill">
+                {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+              </span>
+            ) : null}
           </NavLink>
           <NavLink to="/app/profile" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" strokeWidth="1.8" /><path d="M4 20C4 16.7 7.6 14 12 14C16.4 14 20 16.7 20 20" strokeWidth="1.8" strokeLinecap="round" /></svg></span>
@@ -342,7 +478,13 @@ function UserLayout() {
         </nav>
       </aside>
 
-      <main className="user-main">
+      <main
+        ref={mainRef}
+        className="user-main"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         <header className="user-header user-landing-header">
           <nav className="user-header-links" aria-label="Utility links">
             <Link to="/app/how-to-donate">How to Donate Blood</Link>
@@ -351,6 +493,20 @@ function UserLayout() {
           </nav>
 
           <div className="user-header-right">
+            {pullDistance > 0 ? (
+              <span className="pull-refresh-status">
+                {pullDistance >= 75 ? 'Release to refresh' : 'Pull down to refresh'}
+              </span>
+            ) : null}
+            <button
+              type="button"
+              className={`layout-refresh-btn${refreshingView ? ' is-refreshing' : ''}`}
+              onClick={handleDoubleTapRefresh}
+              title="Double-tap to refresh this page"
+              aria-label="Refresh current page (double tap)"
+            >
+              {refreshingView ? 'Refreshing...' : 'Refresh x2'}
+            </button>
             <div className="user-menu-wrap">
               <button
                 type="button"
@@ -379,7 +535,7 @@ function UserLayout() {
         </header>
 
         <div className="user-content">
-          <Outlet />
+          <Outlet key={refreshNonce} />
         </div>
       </main>
 
@@ -479,11 +635,11 @@ function UserLayout() {
           <div className="terms-gate-card">
             <h2>Terms &amp; Conditions</h2>
             <p>
-              By using BloodLink, you agree to provide accurate information, communicate respectfully,
+              By using LifeCycle, you agree to provide accurate information, communicate respectfully,
               and use this platform only for legitimate blood donation and support needs.
             </p>
             <p>
-              BloodLink helps connect donors and requesters, but it does not replace medical professionals
+              LifeCycle helps connect donors and requesters, but it does not replace medical professionals
               or accredited blood centers.
             </p>
             <label className="terms-gate-check">

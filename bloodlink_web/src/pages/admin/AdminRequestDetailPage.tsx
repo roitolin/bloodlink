@@ -175,14 +175,14 @@ function AdminRequestDetailPage() {
           </div>
 
           {item.details ? (
-            <article className="notification-item" style={{ marginTop: '12px' }}>
+            <article className="notification-item request-detail-note">
               <h3>Request Details</h3>
               <p>{item.details}</p>
             </article>
           ) : null}
 
           {item.notes ? (
-            <article className="notification-item" style={{ marginTop: '12px' }}>
+            <article className="notification-item request-detail-note">
               <h3>Requester Notes</h3>
               <p>{item.notes}</p>
             </article>

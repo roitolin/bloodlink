@@ -15,6 +15,7 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 
 type RequestItem = {
   id: string
@@ -32,6 +33,7 @@ type RequestItem = {
 }
 
 type EmergencyUrgency = 'Critical' | 'Urgent' | 'Normal'
+const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
 type EmergencyBroadcast = {
   id: string
@@ -82,10 +84,11 @@ function AdminRequestsPage() {
   const [broadcastMessage, setBroadcastMessage] = useState('')
   const [broadcastUrgency, setBroadcastUrgency] = useState<EmergencyUrgency>('Critical')
   const [broadcastCity, setBroadcastCity] = useState('')
-  const [broadcastBloodType, setBroadcastBloodType] = useState('')
+  const [broadcastBloodType, setBroadcastBloodType] = useState(BLOOD_TYPES[0])
   const [broadcastHours, setBroadcastHours] = useState('6')
   const [postingBroadcast, setPostingBroadcast] = useState(false)
   const [activeBroadcasts, setActiveBroadcasts] = useState<EmergencyBroadcast[]>([])
+  const { openConfirm, confirmDialog } = useConfirmDialog()
 
   const load = async () => {
     setLoading(true)
@@ -139,28 +142,47 @@ function AdminRequestsPage() {
   }, [items, statusFilter, urgencyFilter, queryText])
 
   const updateStatus = async (item: RequestItem, nextStatus: string) => {
-    setSavingId(item.id)
-    try {
-      const payload: Record<string, unknown> = {
-        status: nextStatus,
-        updatedAt: serverTimestamp(),
-      }
-      if (nextStatus === 'completed') payload.completedAt = serverTimestamp()
-      await updateDoc(doc(db, 'requests', item.id), payload)
-      await load()
-    } finally {
-      setSavingId('')
-    }
+    openConfirm({
+      title: nextStatus === 'completed' ? 'Mark request as completed?' : 'Update request status?',
+      message: `You are about to change the status for ${item.patientName || 'this request'} at ${item.hospital || 'the listed hospital'}.`,
+      details: [`New status: ${nextStatus}`],
+      tone: nextStatus === 'completed' ? 'success' : 'primary',
+      confirmLabel: nextStatus === 'completed' ? 'Complete Request' : 'Update Status',
+      onConfirm: async () => {
+        setSavingId(item.id)
+        try {
+          const payload: Record<string, unknown> = {
+            status: nextStatus,
+            updatedAt: serverTimestamp(),
+          }
+          if (nextStatus === 'completed') payload.completedAt = serverTimestamp()
+          await updateDoc(doc(db, 'requests', item.id), payload)
+          await load()
+        } finally {
+          setSavingId('')
+        }
+      },
+    })
   }
 
   const deleteRequest = async (id: string) => {
-    setSavingId(id)
-    try {
-      await deleteDoc(doc(db, 'requests', id))
-      await load()
-    } finally {
-      setSavingId('')
-    }
+    const item = items.find((entry) => entry.id === id)
+    openConfirm({
+      title: 'Delete this request?',
+      message: `This will permanently remove the request for ${item?.patientName || 'this patient'}.`,
+      details: ['This action cannot be undone.'],
+      tone: 'danger',
+      confirmLabel: 'Delete Request',
+      onConfirm: async () => {
+        setSavingId(id)
+        try {
+          await deleteDoc(doc(db, 'requests', id))
+          await load()
+        } finally {
+          setSavingId('')
+        }
+      },
+    })
   }
 
   const openChatWithRequester = async (requesterId?: string) => {
@@ -211,6 +233,7 @@ function AdminRequestsPage() {
 
     const message = broadcastMessage.trim()
     if (!message) return
+    if (!broadcastBloodType.trim()) return
 
     setPostingBroadcast(true)
     try {
@@ -269,7 +292,7 @@ function AdminRequestsPage() {
 
       setBroadcastMessage('')
       setBroadcastCity('')
-      setBroadcastBloodType('')
+      setBroadcastBloodType(BLOOD_TYPES[0])
       setBroadcastHours('6')
       await load()
     } finally {
@@ -278,10 +301,18 @@ function AdminRequestsPage() {
   }
 
   const resolveEmergencyBroadcast = async (broadcastId: string) => {
-    await updateDoc(doc(db, 'emergency_broadcasts', broadcastId), {
-      status: 'resolved',
-      resolvedAt: serverTimestamp(),
-      resolvedBy: auth.currentUser?.uid || 'admin-web',
+    openConfirm({
+      title: 'Mark this broadcast as resolved?',
+      message: 'Resolved emergency broadcasts will be removed from the active alert board.',
+      tone: 'warning',
+      confirmLabel: 'Mark Resolved',
+      onConfirm: async () => {
+        await updateDoc(doc(db, 'emergency_broadcasts', broadcastId), {
+          status: 'resolved',
+          resolvedAt: serverTimestamp(),
+          resolvedBy: auth.currentUser?.uid || 'admin-web',
+        })
+      },
     })
   }
 
@@ -318,6 +349,7 @@ function AdminRequestsPage() {
             <label htmlFor="emergency-message">Message</label>
             <textarea
               id="emergency-message"
+              className="emergency-message-box"
               value={broadcastMessage}
               onChange={(event) => setBroadcastMessage(event.target.value)}
               placeholder="Urgent blood alert message"
@@ -338,7 +370,13 @@ function AdminRequestsPage() {
           </div>
           <div>
             <label htmlFor="emergency-blood">Target Blood Type</label>
-            <input id="emergency-blood" value={broadcastBloodType} onChange={(event) => setBroadcastBloodType(event.target.value)} placeholder="Optional" />
+            <select id="emergency-blood" value={broadcastBloodType} onChange={(event) => setBroadcastBloodType(event.target.value)}>
+              {BLOOD_TYPES.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label htmlFor="emergency-hours">Expires In (Hours)</label>
@@ -346,7 +384,12 @@ function AdminRequestsPage() {
           </div>
         </div>
         <div className="quick-actions">
-          <button type="button" className="solid-btn" disabled={postingBroadcast || !broadcastMessage.trim()} onClick={() => void publishEmergencyBroadcast()}>
+          <button
+            type="button"
+            className="solid-btn"
+            disabled={postingBroadcast || !broadcastMessage.trim() || !broadcastBloodType.trim()}
+            onClick={() => void publishEmergencyBroadcast()}
+          >
             {postingBroadcast ? 'Publishing...' : 'Publish Emergency Broadcast'}
           </button>
         </div>
@@ -447,6 +490,7 @@ function AdminRequestsPage() {
           </tbody>
         </table>
       </div>
+      {confirmDialog}
     </section>
   )
 }

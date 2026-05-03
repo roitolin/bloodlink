@@ -1,6 +1,6 @@
 module.exports = {
   expo: {
-    name: "BloodLink",
+    name: "LifeCycle",
     slug: "bloodlink",
     version: "1.0.0",
     orientation: "portrait",

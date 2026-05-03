@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { collection, deleteDoc, doc, getDocs, orderBy, query, where } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import { syncPublicCityAvailability } from '../../utils/publicCityAvailability'
 import { getRequestSlaState } from '../../utils/requestSla'
 
@@ -38,6 +39,7 @@ function MyRequestsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [now, setNow] = useState(new Date())
+  const { openConfirm, confirmDialog } = useConfirmDialog()
 
   const load = async () => {
     const user = auth.currentUser
@@ -106,17 +108,27 @@ function MyRequestsPage() {
       return
     }
 
-    try {
-      await deleteDoc(doc(db, 'requests', id))
-      await syncPublicCityAvailability(db)
-      setItems((prev) => prev.filter((item) => item.id !== id))
-    } catch (caughtError) {
-      const messageText =
-        typeof caughtError === 'object' && caughtError !== null && 'message' in caughtError
-          ? String(caughtError.message)
-          : 'Failed to delete request.'
-      setError(messageText)
-    }
+    const item = items.find((entry) => entry.id === id)
+    openConfirm({
+      title: 'Delete this request?',
+      message: `This will remove the request for ${item?.patientName || 'this patient'}.`,
+      details: ['Completed requests cannot be deleted, but pending and accepted ones can be removed.'],
+      tone: 'danger',
+      confirmLabel: 'Delete Request',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'requests', id))
+          await syncPublicCityAvailability(db)
+          setItems((prev) => prev.filter((entry) => entry.id !== id))
+        } catch (caughtError) {
+          const messageText =
+            typeof caughtError === 'object' && caughtError !== null && 'message' in caughtError
+              ? String(caughtError.message)
+              : 'Failed to delete request.'
+          setError(messageText)
+        }
+      },
+    })
   }
 
   const metrics = useMemo(() => {
@@ -218,6 +230,7 @@ function MyRequestsPage() {
           </tbody>
         </table>
       </div>
+      {confirmDialog}
     </section>
   )
 }

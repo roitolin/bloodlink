@@ -47,6 +47,32 @@ const getUrgencyColor = (urgency: string | undefined) => {
   }
 };
 
+const getUrgencyBg = (urgency: string | undefined) => {
+  switch (urgency) {
+    case "Critical":
+      return "#fef2f2";
+    case "Urgent":
+      return "#fff7ed";
+    default:
+      return "#eff6ff";
+  }
+};
+
+const timeLeftLabel = (expiresAt: any) => {
+  const expiryDate = toDate(expiresAt);
+  if (!expiryDate) return "No expiry";
+  const remainingMs = expiryDate.getTime() - Date.now();
+  if (remainingMs <= 0) return "Expired";
+  const minutes = Math.floor(remainingMs / 60000);
+  if (minutes < 60) return `${minutes}m left`;
+  const hours = Math.floor(minutes / 60);
+  const remMinutes = minutes % 60;
+  if (hours < 24) return remMinutes === 0 ? `${hours}h left` : `${hours}h ${remMinutes}m left`;
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  return remHours === 0 ? `${days}d left` : `${days}d ${remHours}h left`;
+};
+
 export default function EmergencyBroadcastBanner({
   viewerCity = "",
   viewerBloodType = "",
@@ -89,23 +115,32 @@ export default function EmergencyBroadcastBanner({
   return (
     <Card style={styles.card} mode="elevated">
       <Card.Content>
-        <Text style={styles.title}>{title}</Text>
+        <View style={styles.headRow}>
+          <Text style={styles.title}>{title}</Text>
+          <View style={styles.livePill}>
+            <Text style={styles.livePillText}>Live: {activeItems.length}</Text>
+          </View>
+        </View>
+        <Text style={styles.subtitle}>Priority alerts relevant to your location and blood type.</Text>
         {activeItems.map((item) => {
           const urgencyColor = getUrgencyColor(item.urgency);
+          const urgencyBg = getUrgencyBg(item.urgency);
           const expiresAt = toDate(item.expiresAt);
           return (
             <View key={item.id} style={styles.row}>
-              <View style={[styles.dot, { backgroundColor: urgencyColor }]} />
               <View style={styles.rowContent}>
-                <Text style={[styles.urgency, { color: urgencyColor }]}>
-                  {item.urgency || "Emergency"} Alert
-                </Text>
+                <View style={styles.rowHead}>
+                  <Text style={[styles.urgency, { color: urgencyColor, backgroundColor: urgencyBg, borderColor: urgencyColor }]}>
+                    {item.urgency || "Emergency"}
+                  </Text>
+                  <Text style={styles.timePill}>{timeLeftLabel(item.expiresAt)}</Text>
+                </View>
                 <Text style={styles.message}>{item.message || "Emergency alert posted."}</Text>
-                <Text style={styles.meta}>
-                  {item.targetCity ? `City: ${item.targetCity}` : "Nationwide"}
-                  {item.targetBloodType ? ` | Blood: ${item.targetBloodType}` : ""}
-                  {expiresAt ? ` | Until ${expiresAt.toLocaleString()}` : ""}
-                </Text>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaPill}>{item.targetCity ? `City: ${item.targetCity}` : "Coverage: Nationwide"}</Text>
+                  {item.targetBloodType ? <Text style={styles.metaPill}>Blood: {item.targetBloodType}</Text> : null}
+                  {expiresAt ? <Text style={styles.metaPill}>Until {expiresAt.toLocaleString()}</Text> : null}
+                </View>
               </View>
             </View>
           );
@@ -117,44 +152,100 @@ export default function EmergencyBroadcastBanner({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
-    backgroundColor: "#fff7ed",
+    borderRadius: 14,
+    backgroundColor: "#fff8f0",
     borderWidth: 1,
-    borderColor: "#fed7aa",
+    borderColor: "#f7d2bf",
+  },
+  headRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    marginBottom: 2,
   },
   title: {
     color: "#9a3412",
     fontWeight: "800",
-    marginBottom: 10,
     fontSize: 16,
   },
-  row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
+  livePill: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    backgroundColor: "#fff1f2",
+    paddingVertical: 3,
+    paddingHorizontal: 9,
+  },
+  livePillText: {
+    color: "#9f1239",
+    fontWeight: "800",
+    fontSize: 11,
+  },
+  subtitle: {
+    color: "#7c2d12",
+    fontSize: 12,
+    lineHeight: 18,
     marginBottom: 10,
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginTop: 6,
+  row: {
+    borderWidth: 1,
+    borderColor: "#f5d5c3",
+    borderRadius: 12,
+    backgroundColor: "#fffdfb",
+    padding: 10,
+    marginBottom: 10,
   },
   rowContent: {
     flex: 1,
   },
+  rowHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    marginBottom: 6,
+  },
   urgency: {
     fontWeight: "800",
-    marginBottom: 2,
+    borderWidth: 1,
+    borderRadius: 999,
+    fontSize: 11,
+    paddingVertical: 3,
+    paddingHorizontal: 9,
+    textTransform: "uppercase",
+  },
+  timePill: {
+    color: "#92400e",
+    fontSize: 11,
+    fontWeight: "700",
+    borderWidth: 1,
+    borderColor: "#fde68a",
+    backgroundColor: "#fffbeb",
+    borderRadius: 999,
+    paddingVertical: 3,
+    paddingHorizontal: 9,
   },
   message: {
     color: "#1f2937",
-    lineHeight: 20,
-  },
-  meta: {
-    marginTop: 4,
-    color: "#6b7280",
-    fontSize: 12,
+    lineHeight: 21,
     fontWeight: "600",
+  },
+  metaRow: {
+    marginTop: 10,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  metaPill: {
+    color: "#7c2d12",
+    fontSize: 11,
+    fontWeight: "700",
+    borderWidth: 1,
+    borderColor: "#f1d4c4",
+    backgroundColor: "#fff7f1",
+    borderRadius: 999,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
   },
 });

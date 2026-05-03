@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
   AboutUsScreen,
   ContactScreen,
+  DonorProfileScreen,
   DonationHistoryScreen,
   ProfileScreen,
 } from "@/pages/user";
@@ -19,6 +20,7 @@ export default function ProfileStackNavigator() {
   return (
     <Stack.Navigator>
       <Stack.Screen name="ProfileMain" component={ProfileScreen} options={{ title: "Profile" }} />
+      <Stack.Screen name="DonorApplication" component={DonorProfileScreen} options={{ title: "Donor Application" }} />
       <Stack.Screen name="Contact" component={ContactScreen} options={{ title: "Contact Support" }} />
       <Stack.Screen name="SupportChat" component={ChatScreen} options={{ title: "Support Chat" }} />
       <Stack.Screen name="DonorDetail" component={DonorDetailScreen} options={{ title: "Profile Details" }} />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth'
 import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore'
@@ -9,6 +9,8 @@ type ProfileData = {
   photoURL: string
   gender: string
 }
+
+type AdminRole = 'super_admin' | 'admin' | 'blood_admin' | 'funeral_admin' | 'user'
 
 type AdminNotification = {
   id: string
@@ -47,11 +49,20 @@ function getTimestampMs(value: { toDate?: () => Date } | string | null | undefin
 function AdminLayout() {
   const navigate = useNavigate()
   const [user, setUser] = useState<User | null>(auth.currentUser)
+  const [userRole, setUserRole] = useState<AdminRole>('user')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [notifications, setNotifications] = useState<AdminNotification[]>([])
   const [profile, setProfile] = useState<ProfileData>({ fullName: 'Admin', photoURL: '', gender: '' })
+  const [refreshNonce, setRefreshNonce] = useState(0)
+  const [refreshingView, setRefreshingView] = useState(false)
+  const [pullDistance, setPullDistance] = useState(0)
+  const mainRef = useRef<HTMLElement | null>(null)
+  const refreshTimerRef = useRef<number | null>(null)
+  const lastTapRef = useRef(0)
+  const touchStartYRef = useRef(0)
+  const touchPullEnabledRef = useRef(false)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
@@ -65,14 +76,16 @@ function AdminLayout() {
       if (!user) return
       try {
         const snapshot = await getDoc(doc(db, 'users', user.uid))
-        const data = snapshot.data() as { fullName?: string; photoURL?: string; gender?: string } | undefined
+        const data = snapshot.data() as { fullName?: string; photoURL?: string; gender?: string; role?: string } | undefined
         setProfile({
           fullName: data?.fullName?.trim() || user.displayName || 'Admin',
           photoURL: data?.photoURL?.trim() || user.photoURL || '',
           gender: String(data?.gender || '').toLowerCase(),
         })
+        setUserRole((String(data?.role || 'user').toLowerCase() as AdminRole) || 'user')
       } catch {
         setProfile({ fullName: user.displayName || 'Admin', photoURL: user.photoURL || '', gender: '' })
+        setUserRole('user')
       }
     }
     void loadProfile()
@@ -92,6 +105,91 @@ function AdminLayout() {
   const visibleNotifications = useMemo(() => (user ? notifications : []), [notifications, user])
   const unreadCount = useMemo(() => visibleNotifications.filter((item) => !item.read).length, [visibleNotifications])
   const avatarSrc = profile.photoURL || getDefaultAvatar(profile.gender)
+  const isRootAdmin = userRole === 'super_admin' || userRole === 'admin'
+  const isBloodAdmin = isRootAdmin || userRole === 'blood_admin'
+  const isFuneralAdmin = isRootAdmin || userRole === 'funeral_admin'
+  const adminTitle =
+    userRole === 'super_admin'
+      ? 'Super Admin Console'
+      : userRole === 'blood_admin'
+        ? 'Blood Admin Console'
+        : userRole === 'funeral_admin'
+          ? 'Shop Console'
+          : 'Admin Console'
+  const homePath = userRole === 'blood_admin' ? '/admin/donors' : userRole === 'funeral_admin' ? '/admin/funeral-shops' : '/admin/dashboard'
+  const homeLabel =
+    userRole === 'super_admin'
+      ? 'Super Admin'
+      : userRole === 'blood_admin'
+        ? 'Blood Admin'
+        : userRole === 'funeral_admin'
+          ? 'Shops'
+          : 'Dashboard'
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current !== null) {
+        window.clearTimeout(refreshTimerRef.current)
+      }
+    }
+  }, [])
+
+  const triggerContentRefresh = useCallback(() => {
+    setRefreshNonce(Date.now())
+    setRefreshingView(true)
+    if (refreshTimerRef.current !== null) {
+      window.clearTimeout(refreshTimerRef.current)
+    }
+    refreshTimerRef.current = window.setTimeout(() => {
+      setRefreshingView(false)
+    }, 700)
+  }, [])
+
+  const handleDoubleTapRefresh = () => {
+    const now = Date.now()
+    if (now - lastTapRef.current <= 420) {
+      lastTapRef.current = 0
+      triggerContentRefresh()
+      return
+    }
+    lastTapRef.current = now
+  }
+
+  const getCurrentScrollTop = () => {
+    const container = mainRef.current
+    if (container && container.scrollHeight > container.clientHeight) {
+      return container.scrollTop
+    }
+    return window.scrollY || document.documentElement.scrollTop || 0
+  }
+
+  const handleTouchStart = (event: TouchEvent<HTMLElement>) => {
+    if (event.touches.length !== 1) return
+    touchStartYRef.current = event.touches[0]?.clientY || 0
+    touchPullEnabledRef.current = getCurrentScrollTop() <= 2
+    if (touchPullEnabledRef.current) {
+      setPullDistance(0)
+    }
+  }
+
+  const handleTouchMove = (event: TouchEvent<HTMLElement>) => {
+    if (!touchPullEnabledRef.current || event.touches.length !== 1) return
+    const delta = (event.touches[0]?.clientY || 0) - touchStartYRef.current
+    if (delta <= 0) {
+      setPullDistance(0)
+      touchPullEnabledRef.current = false
+      return
+    }
+    setPullDistance(Math.min(120, delta * 0.55))
+  }
+
+  const handleTouchEnd = () => {
+    if (pullDistance >= 75) {
+      triggerContentRefresh()
+    }
+    setPullDistance(0)
+    touchPullEnabledRef.current = false
+  }
 
   const handleLogout = async () => {
     await signOut(auth)
@@ -103,7 +201,7 @@ function AdminLayout() {
       <aside className="user-sidebar">
         <Link to="/" className="brand user-brand">
           <img src="/Logo.png" alt="Bloodlink logo" className="brand-logo" />
-          <strong className="sidebar-label">Bloodlink Admin</strong>
+          <strong className="sidebar-label">{adminTitle}</strong>
         </Link>
 
         <nav className="user-nav" aria-label="Admin navigation">
@@ -124,15 +222,15 @@ function AdminLayout() {
             <span className="sidebar-label">Menu</span>
           </button>
 
-          <NavLink to="/admin" end className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
+          <NavLink to={homePath} end className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M3 11L12 3L21 11V21H14V15H10V21H3V11Z" strokeWidth="1.8" strokeLinejoin="round" />
               </svg>
             </span>
-            <span className="sidebar-label">Dashboard</span>
+            <span className="sidebar-label">{homeLabel}</span>
           </NavLink>
-          <NavLink to="/admin/requests" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
+          {isBloodAdmin ? <NavLink to="/admin/requests" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M5 4H19A2 2 0 0 1 21 6V18A2 2 0 0 1 19 20H5A2 2 0 0 1 3 18V6A2 2 0 0 1 5 4Z" strokeWidth="1.8" />
@@ -141,8 +239,8 @@ function AdminLayout() {
               </svg>
             </span>
             <span className="sidebar-label">Requests</span>
-          </NavLink>
-          <NavLink to="/admin/donors" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
+          </NavLink> : null}
+          {isBloodAdmin ? <NavLink to="/admin/donors" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M12 4C12 4 7 9.2 7 12.5A5 5 0 0 0 17 12.5C17 9.2 12 4 12 4Z" strokeWidth="1.8" />
@@ -151,7 +249,16 @@ function AdminLayout() {
               </svg>
             </span>
             <span className="sidebar-label">Donors</span>
-          </NavLink>
+          </NavLink> : null}
+          {isFuneralAdmin ? <NavLink to="/admin/funeral-shops" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
+            <span className="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M5 20V10L12 4L19 10V20" strokeWidth="1.8" strokeLinejoin="round" />
+                <path d="M9 20V14H15V20" strokeWidth="1.8" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <span className="sidebar-label">Funeral Shops</span>
+          </NavLink> : null}
           <NavLink to="/admin/users" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none">
@@ -172,7 +279,7 @@ function AdminLayout() {
             </span>
             <span className="sidebar-label">Moderation</span>
           </NavLink>
-          <NavLink to="/admin/announcements" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
+          {isBloodAdmin ? <NavLink to="/admin/announcements" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M4 12V8L14 5V19L4 16V12Z" strokeWidth="1.8" strokeLinejoin="round" />
@@ -181,8 +288,8 @@ function AdminLayout() {
               </svg>
             </span>
             <span className="sidebar-label">Announcements</span>
-          </NavLink>
-          <NavLink to="/admin/analytics" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
+          </NavLink> : null}
+          {isBloodAdmin ? <NavLink to="/admin/analytics" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M4 20H20" strokeWidth="1.8" strokeLinecap="round" />
@@ -192,8 +299,8 @@ function AdminLayout() {
               </svg>
             </span>
             <span className="sidebar-label">Analytics</span>
-          </NavLink>
-          <NavLink to="/admin/feedback" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
+          </NavLink> : null}
+          {isBloodAdmin ? <NavLink to="/admin/feedback" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M5 5H19V14H8L5 17V5Z" strokeWidth="1.8" strokeLinejoin="round" />
@@ -202,8 +309,8 @@ function AdminLayout() {
               </svg>
             </span>
             <span className="sidebar-label">Feedback</span>
-          </NavLink>
-          <NavLink to="/admin/support" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
+          </NavLink> : null}
+          {isBloodAdmin ? <NavLink to="/admin/support" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M4.5 6.5C4.5 5.7 5.2 5 6 5H18C18.8 5 19.5 5.7 19.5 6.5V14C19.5 14.8 18.8 15.5 18 15.5H9L5.5 18.7V6.5Z" strokeWidth="1.8" strokeLinejoin="round" />
@@ -212,7 +319,7 @@ function AdminLayout() {
               </svg>
             </span>
             <span className="sidebar-label">Support</span>
-          </NavLink>
+          </NavLink> : null}
           <NavLink to="/admin/audit-logs" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none">
@@ -231,9 +338,29 @@ function AdminLayout() {
         </div>
       </aside>
 
-      <main className="user-main">
+      <main
+        ref={mainRef}
+        className="user-main"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         <header className="user-header">
           <div className="user-header-right">
+            {pullDistance > 0 ? (
+              <span className="pull-refresh-status">
+                {pullDistance >= 75 ? 'Release to refresh' : 'Pull down to refresh'}
+              </span>
+            ) : null}
+            <button
+              type="button"
+              className={`layout-refresh-btn${refreshingView ? ' is-refreshing' : ''}`}
+              onClick={handleDoubleTapRefresh}
+              title="Double-tap to refresh this page"
+              aria-label="Refresh current page (double tap)"
+            >
+              {refreshingView ? 'Refreshing...' : 'Refresh x2'}
+            </button>
             <div className="user-menu-wrap">
               <button
                 type="button"
@@ -290,10 +417,10 @@ function AdminLayout() {
         </header>
 
         <header className="admin-header">
-          <h1>Admin Console</h1>
+          <h1>{adminTitle}</h1>
         </header>
         <div className="user-content">
-          <Outlet />
+          <Outlet key={refreshNonce} />
         </div>
       </main>
     </div>

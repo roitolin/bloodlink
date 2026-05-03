@@ -3,13 +3,14 @@ import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { navigationTheme } from "../theme";
 import AuthNavigator from "./AuthNavigator";
-import MainNavigator from "./MainNavigator";
 import AdminStackNavigator from "./AdminStackNavigator";
 import VerificationStackNavigator from "./VerificationStackNavigator";
+import ServiceHubNavigator from "./ServiceHubNavigator";
 
 export default function RootNavigator() {
   const { user, role, loading } = useAuth();
   const navigationKey = user?.uid ? `auth-${user.uid}-${role || "user"}` : "guest";
+  const isAdminRole = role === "super_admin" || role === "admin" || role === "blood_admin" || role === "funeral_admin";
 
   if (loading) {
     return (
@@ -23,8 +24,8 @@ export default function RootNavigator() {
     <NavigationContainer key={navigationKey} theme={navigationTheme}>
       {!user && <AuthNavigator />}
       {user && !user.emailVerified && <VerificationStackNavigator />}
-      {user && user.emailVerified && role === "admin" && <AdminStackNavigator />}
-      {user && user.emailVerified && role !== "admin" && <MainNavigator />}
+      {user && user.emailVerified && isAdminRole && <AdminStackNavigator />}
+      {user && user.emailVerified && !isAdminRole && <ServiceHubNavigator />}
     </NavigationContainer>
   );
 }

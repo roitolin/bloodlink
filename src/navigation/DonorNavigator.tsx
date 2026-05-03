@@ -1,40 +1,34 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Button, Alert } from "react-native";
-import { useAuth } from "../context/AuthContext";
+import { Button } from "react-native";
 import { DonorDashboard, DonorProfileScreen } from "@/pages/user";
-import { confirmLogout } from "../utils/logoutConfirmation";
+import { MapLocationPickerScreen } from "@/pages/shared";
 
 const Stack = createNativeStackNavigator();
 
 export default function DonorNavigator() {
-  const { logout } = useAuth();
-  const handleLogout = () => {
-    confirmLogout({
-      logout,
-      onError: (error: any) => {
-        Alert.alert("Logout Failed", error?.message || "Failed to logout.");
-      },
-    });
-  };
-
   return (
     <Stack.Navigator>
       <Stack.Screen
         name="DonorDashboard"
         component={DonorDashboard}
-        options={{
+        options={({ navigation }) => ({
           title: "Dashboard",
-          headerRight: () => <Button title="Logout" onPress={handleLogout} color="red" />,
-        }}
+          headerRight: () => (
+            <Button title="Choices" onPress={() => navigation.getParent?.()?.getParent?.()?.navigate("ServiceHub")} color="#b91c1c" />
+          ),
+        })}
       />
       <Stack.Screen
         name="DonorProfile"
         component={DonorProfileScreen}
-        options={{
-          title: "My Profile",
-          headerRight: () => <Button title="Logout" onPress={handleLogout} color="red" />,
-        }}
+        options={({ navigation }) => ({
+          title: "Donor Application",
+          headerRight: () => (
+            <Button title="Choices" onPress={() => navigation.getParent?.()?.getParent?.()?.navigate("ServiceHub")} color="#b91c1c" />
+          ),
+        })}
       />
+      <Stack.Screen name="MapLocationPicker" component={MapLocationPickerScreen} options={{ title: "Pin Location" }} />
     </Stack.Navigator>
   );
 }

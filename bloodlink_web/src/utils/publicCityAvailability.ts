@@ -35,7 +35,7 @@ export async function syncPublicCityAvailability(db: Firestore) {
 
   usersSnap.docs
     .map((itemDoc) => itemDoc.data() as { role?: string; availabilityStatus?: string; city?: string })
-    .filter((item) => String(item.role || '').toLowerCase() !== 'admin')
+    .filter((item) => !String(item.role || '').toLowerCase().includes('admin'))
     .filter((item) => String(item.availabilityStatus || '').toLowerCase() === 'available')
     .forEach((item) => {
       const cityKey = normalizeCity(item.city)

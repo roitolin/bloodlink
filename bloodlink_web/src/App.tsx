@@ -1,11 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { LandingPage, LoginPage, RegisterPage, VerifyEmailPage } from '@/pages'
+import { FuneralLandingPage, LandingPage, LoginPage, RegisterPage, ServiceChoicePage, VerifyEmailPage } from '@/pages'
 import {
   AboutUsPage,
   ContactSupportPage,
   CreateRequestPage,
   DashboardPage,
+  DonorApplicationPage,
+  DonorDetailPage,
   DonationHistoryPage,
   FeedbackPage,
   HowToDonatePage,
@@ -23,8 +25,11 @@ import {
   AdminDashboardPage,
   AdminDonorsPage,
   AdminFeedbackPage,
+  AdminFuneralShopsPage,
   AdminLayout,
   AdminModerationPage,
+  AdminRoleGuard,
+  AdminRoleRedirectPage,
   AdminRequestDetailPage,
   AdminRequestsPage,
   AdminSupportPage,
@@ -36,7 +41,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<ServiceChoicePage />} />
+        <Route path="/blood" element={<LandingPage />} />
+        <Route path="/funeral" element={<FuneralLandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -45,6 +52,8 @@ function App() {
           <Route path="/app" element={<UserLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="search-donors" element={<SearchDonorsPage />} />
+            <Route path="donors/:id" element={<DonorDetailPage />} />
+            <Route path="donor-application" element={<DonorApplicationPage />} />
             <Route path="create-request" element={<CreateRequestPage />} />
             <Route path="my-requests" element={<MyRequestsPage />} />
             <Route path="my-requests/:id" element={<RequestDetailPage />} />
@@ -58,19 +67,27 @@ function App() {
           </Route>
         </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={['admin']} redirectUnauthorizedTo="/app" />}>
+        <Route element={<ProtectedRoute allowedRoles={['super_admin', 'admin', 'blood_admin', 'funeral_admin']} redirectUnauthorizedTo="/app" />}>
           <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboardPage />} />
+            <Route index element={<AdminRoleRedirectPage />} />
+            <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="requests" element={<AdminRequestsPage />} />
             <Route path="requests/:id" element={<AdminRequestDetailPage />} />
-            <Route path="donors" element={<AdminDonorsPage />} />
+            <Route element={<AdminRoleGuard allowedRoles={['super_admin', 'admin', 'blood_admin']} />}>
+              <Route path="donors" element={<AdminDonorsPage />} />
+            </Route>
+            <Route element={<AdminRoleGuard allowedRoles={['super_admin', 'admin', 'funeral_admin']} />}>
+              <Route path="funeral-shops" element={<AdminFuneralShopsPage />} />
+            </Route>
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="users/:id" element={<AdminUserDetailPage />} />
             <Route path="moderation" element={<AdminModerationPage />} />
-            <Route path="announcements" element={<AdminAnnouncementsPage />} />
-            <Route path="analytics" element={<AdminAnalyticsPage />} />
-            <Route path="feedback" element={<AdminFeedbackPage />} />
-            <Route path="support" element={<AdminSupportPage />} />
+            <Route element={<AdminRoleGuard allowedRoles={['super_admin', 'admin', 'blood_admin']} />}>
+              <Route path="announcements" element={<AdminAnnouncementsPage />} />
+              <Route path="analytics" element={<AdminAnalyticsPage />} />
+              <Route path="feedback" element={<AdminFeedbackPage />} />
+              <Route path="support" element={<AdminSupportPage />} />
+            </Route>
             <Route path="audit-logs" element={<AdminAuditLogsPage />} />
           </Route>
         </Route>

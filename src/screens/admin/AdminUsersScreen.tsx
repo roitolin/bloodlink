@@ -145,44 +145,56 @@ export default function AdminUsersScreen({ navigation }: any) {
 
     const now = Date.now();
     const bannedUntilDate = new Date(now + days * 24 * 60 * 60 * 1000);
+    Alert.alert(
+      "Confirm Ban",
+      `Ban ${banTargetUser.email} for ${days} day(s)?\n\nReason: ${trimmedReason}\nBan ends: ${bannedUntilDate.toLocaleString()}`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Confirm Ban",
+          style: "destructive",
+          onPress: async () => {
+            setUpdatingId(banTargetUser.id);
+            try {
+              await updateDoc(doc(db, "users", banTargetUser.id), {
+                disabled: true,
+                banReason: trimmedReason,
+                bannedBy: auth.currentUser?.uid || null,
+                bannedAt: serverTimestamp(),
+                bannedUntil: Timestamp.fromDate(bannedUntilDate),
+              });
 
-    setUpdatingId(banTargetUser.id);
-    try {
-      await updateDoc(doc(db, "users", banTargetUser.id), {
-        disabled: true,
-        banReason: trimmedReason,
-        bannedBy: auth.currentUser?.uid || null,
-        bannedAt: serverTimestamp(),
-        bannedUntil: Timestamp.fromDate(bannedUntilDate),
-      });
+              const patch = {
+                disabled: true,
+                banReason: trimmedReason,
+                bannedBy: auth.currentUser?.uid || null,
+                bannedAt: new Date(),
+                bannedUntil: bannedUntilDate,
+              };
 
-      const patch = {
-        disabled: true,
-        banReason: trimmedReason,
-        bannedBy: auth.currentUser?.uid || null,
-        bannedAt: new Date(),
-        bannedUntil: bannedUntilDate,
-      };
+              setUsers((prev) => prev.map((item) => (item.id === banTargetUser.id ? { ...item, ...patch } : item)));
+              setFilteredUsers((prev) => prev.map((item) => (item.id === banTargetUser.id ? { ...item, ...patch } : item)));
 
-      setUsers((prev) => prev.map((item) => (item.id === banTargetUser.id ? { ...item, ...patch } : item)));
-      setFilteredUsers((prev) => prev.map((item) => (item.id === banTargetUser.id ? { ...item, ...patch } : item)));
+              await logAdminAction({
+                adminId: auth.currentUser?.uid,
+                action: "user_banned",
+                targetType: "user",
+                targetId: banTargetUser.id,
+                summary: `Banned user ${banTargetUser.email} until ${bannedUntilDate.toLocaleString()}`,
+                metadata: { reason: trimmedReason, bannedUntil: bannedUntilDate.toISOString() },
+              });
 
-      await logAdminAction({
-        adminId: auth.currentUser?.uid,
-        action: "user_banned",
-        targetType: "user",
-        targetId: banTargetUser.id,
-        summary: `Banned user ${banTargetUser.email} until ${bannedUntilDate.toLocaleString()}`,
-        metadata: { reason: trimmedReason, bannedUntil: bannedUntilDate.toISOString() },
-      });
-
-      closeBanModal();
-      Alert.alert("Success", `User banned until ${bannedUntilDate.toLocaleString()}.`);
-    } catch (error: any) {
-      Alert.alert("Error", error?.message || "Failed to ban user.");
-    } finally {
-      setUpdatingId(null);
-    }
+              closeBanModal();
+              Alert.alert("Success", `User banned until ${bannedUntilDate.toLocaleString()}.`);
+            } catch (error: any) {
+              Alert.alert("Error", error?.message || "Failed to ban user.");
+            } finally {
+              setUpdatingId(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const unbanUser = async (user: User) => {

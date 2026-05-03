@@ -4,10 +4,14 @@ import { sendEmailVerification } from "firebase/auth";
 import { useAuth } from "../../context/AuthContext";
 import { useResponsive } from "../../utils/responsive";
 
+const RESEND_COOLDOWN_SECONDS = 60;
+const RATE_LIMIT_COOLDOWN_SECONDS = 120;
+
 export default function VerificationScreen() {
   const { user, logout } = useAuth();
   const [resending, setResending] = useState(false);
   const [countdown, setCountdown] = useState(30 * 60);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const { isDesktop } = useResponsive();
   const mounted = useRef(true);
 
@@ -38,18 +42,56 @@ export default function VerificationScreen() {
     return () => clearInterval(timer);
   }, [handleAutoLogout]);
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const cooldownTimer = setInterval(() => {
+      setResendCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(cooldownTimer);
+  }, [resendCooldown]);
+
   const minutes = Math.floor(countdown / 60);
   const seconds = countdown % 60;
   const timeLabel = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  const resendLabel =
+    resendCooldown > 0
+      ? `Resend in ${String(Math.floor(resendCooldown / 60)).padStart(2, "0")}:${String(resendCooldown % 60).padStart(
+          2,
+          "0"
+        )}`
+      : "Resend Verification Email";
+
+  const getResendErrorMessage = (error: any) => {
+    const code = error?.code || "";
+    if (code === "auth/too-many-requests") {
+      return "Too many resend attempts. Please wait a bit before trying again.";
+    }
+    if (code === "auth/network-request-failed") {
+      return "Network error. Please check your internet connection and try again.";
+    }
+    return "Unable to resend verification email right now. Please try again later.";
+  };
 
   const resendVerification = async () => {
-    if (!user) return;
+    if (!user) {
+      Alert.alert("Session Ended", "Please log in again to resend the verification email.");
+      return;
+    }
+    if (resendCooldown > 0) {
+      Alert.alert("Please Wait", `You can resend another email in ${resendCooldown} seconds.`);
+      return;
+    }
+
     setResending(true);
     try {
       await sendEmailVerification(user);
-      Alert.alert("Verification Email Sent", "Please check your inbox.");
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      Alert.alert("Verification Email Sent", "Please check your inbox and spam folder.");
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      if (error?.code === "auth/too-many-requests") {
+        setResendCooldown(RATE_LIMIT_COOLDOWN_SECONDS);
+      }
+      Alert.alert("Resend Failed", getResendErrorMessage(error));
     } finally {
       if (mounted.current) setResending(false);
     }
@@ -66,6 +108,7 @@ export default function VerificationScreen() {
   return (
     <View style={styles.overlay}>
       <View style={[styles.card, isDesktop && styles.cardDesktop]}>
+        <Text style={styles.kicker}>Account Verification</Text>
         <Text style={styles.title}>Verify Your Email</Text>
         <Text style={styles.message}>
           We have sent a verification email to {"\n"}
@@ -75,9 +118,9 @@ export default function VerificationScreen() {
           Session expires in {timeLabel}. You will be logged out if still unverified.
         </Text>
         <Button
-          title={resending ? "Sending..." : "Resend Verification Email"}
+          title={resending ? "Sending..." : resendLabel}
           onPress={resendVerification}
-          disabled={resending}
+          disabled={resending || resendCooldown > 0}
         />
         <View style={{ marginTop: 10 }} />
         <Button title="Logout Now" onPress={handleLogout} color="red" />
@@ -108,10 +151,18 @@ const styles = StyleSheet.create({
   cardDesktop: {
     maxWidth: 500,
   },
+  kicker: {
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    textAlign: "center",
+    marginBottom: 8,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 14,
     color: "#d32f2f",
     textAlign: "center",
   },

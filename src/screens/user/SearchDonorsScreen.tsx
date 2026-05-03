@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Card, Text, Avatar, Button, TextInput } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
+import { Ionicons } from "@expo/vector-icons";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import * as Location from "expo-location";
 import { db } from "../../services/firebaseConfig";
@@ -147,6 +148,7 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
   const [cityLookupLoading, setCityLookupLoading] = useState(false);
   const latestSearchRef = useRef(0);
   const lastResetTokenRef = useRef<number | null>(null);
+  const lastRefreshTokenRef = useRef<number | null>(null);
   const { isDesktop } = useResponsive();
   const placeSuggestions = useMemo(
     () => (showAdvancedFilters ? getPhilippinePlaceSuggestions(city, city.trim() ? 8 : 6) : []),
@@ -331,6 +333,14 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
   }, [route.params?.resetFilters]);
 
   useEffect(() => {
+    const refreshToken = route.params?.refreshToken;
+    if (!refreshToken || refreshToken === lastRefreshTokenRef.current) return;
+    lastRefreshTokenRef.current = refreshToken;
+    setRefreshing(true);
+    void searchDonors();
+  }, [route.params?.refreshToken, searchDonors]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       if (showAdvancedFilters && city.trim().length >= 3) {
         searchDonors();
@@ -376,25 +386,39 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
     }
   };
 
+  const openDonorDetails = useCallback(
+    (donorId: string) => {
+      navigation.navigate("DonorDetail", { donorId });
+    },
+    [navigation]
+  );
+
   const renderDonor = ({ item }: { item: Donor }) => (
-    <Card style={styles.card} mode="elevated">
-      <Card.Title
-        title={item.fullName || "Anonymous"}
-        subtitle={`Blood Type: ${item.bloodType || "N/A"}`}
-        left={(props) =>
-          item.photoURL ? (
-            <Avatar.Image {...props} source={{ uri: item.photoURL }} />
-          ) : (
-            <Avatar.Icon {...props} icon="account" />
-          )
-        }
-        right={(props) =>
-          item.medicalCertificateURL ? (
-            <Avatar.Icon {...props} icon="check-decagram" color="green" />
-          ) : null
-        }
-      />
-      <Card.Content>
+    <Card style={styles.card} mode="elevated" onPress={() => openDonorDetails(item.id)}>
+      <Card.Content style={styles.donorCardContent}>
+        <View style={styles.donorTopRow}>
+          <View style={styles.donorIdentityWrap}>
+            {item.photoURL ? (
+              <Avatar.Image size={52} source={{ uri: item.photoURL }} />
+            ) : (
+              <Avatar.Icon size={52} icon="account" style={styles.donorAvatarFallback} />
+            )}
+            <View style={styles.donorIdentityText}>
+              <Text style={styles.donorName}>{item.fullName || "Anonymous"}</Text>
+              <View style={styles.donorMetaRow}>
+                <View style={styles.bloodTypeBadge}>
+                  <Text style={styles.bloodTypeBadgeText}>{item.bloodType || "N/A"}</Text>
+                </View>
+                {item.medicalCertificateURL ? (
+                  <View style={styles.verifiedStatusPill}>
+                    <Ionicons name="checkmark-circle" size={14} color="#15803d" />
+                    <Text style={styles.verifiedStatusText}>Verified</Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          </View>
+        </View>
         {typeof item.smartRankScore === "number" && (
           <View style={styles.rankRow}>
             <View style={[styles.rankPill, item.smartRankTier === "excellent" && styles.rankPillExcellent, item.smartRankTier === "good" && styles.rankPillGood]}>
@@ -405,15 +429,30 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
             ) : null}
           </View>
         )}
-        <Text variant="bodyMedium">Location: {getDonorLocationText(item, false)}</Text>
-        <Text variant="bodyMedium">Contact: {item.contactNumber || "Not provided"}</Text>
-        {typeof item.distanceKm === "number" && (
-          <Text variant="bodyMedium">Distance: {item.distanceKm.toFixed(1)} km</Text>
-        )}
+        <View style={styles.infoChipList}>
+          <View style={styles.infoChip}>
+            <Ionicons name="location-outline" size={14} color="#9f1239" />
+            <Text style={styles.infoChipText}>{getDonorLocationText(item, false)}</Text>
+          </View>
+          <View style={styles.infoChip}>
+            <Ionicons name="call-outline" size={14} color="#9f1239" />
+            <Text style={styles.infoChipText}>{item.contactNumber || "Not provided"}</Text>
+          </View>
+          {typeof item.distanceKm === "number" ? (
+            <View style={styles.infoChip}>
+              <Ionicons name="navigate-outline" size={14} color="#9f1239" />
+              <Text style={styles.infoChipText}>{item.distanceKm.toFixed(1)} km away</Text>
+            </View>
+          ) : null}
+        </View>
       </Card.Content>
-      <Card.Actions>
+      <Card.Actions style={styles.donorActions}>
+        <Button mode="text" textColor="#7f1d1d" onPress={() => openDonorDetails(item.id)}>
+          View Details
+        </Button>
         <Button
           mode="contained"
+          buttonColor="#7f1d1d"
           onPress={() =>
             navigation.navigate("CreateRequest", {
               fromFindDonor: true,
@@ -445,17 +484,58 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
 
   const headerComponent = (
     <View>
-      <View style={styles.pageHeader}>
-        <Text style={styles.pageTitle}>Find Donors</Text>
-        <Text style={styles.pageSubtitle}>
-          Browse available donors instantly. Smart ranking automatically prioritizes best donor matches first.
-        </Text>
+      <View style={styles.heroShell}>
+        <View style={styles.heroGlowPrimary} pointerEvents="none" />
+        <View style={styles.heroGlowSecondary} pointerEvents="none" />
+        <View style={styles.pageHeader}>
+          <Text style={styles.heroEyebrow}>Find Donors</Text>
+          <View style={styles.heroTopRow}>
+            <View style={styles.heroTextWrap}>
+              <Text style={styles.pageTitle}>Search your best matches</Text>
+              <Text style={styles.pageSubtitle}>
+                Browse available donors instantly. Smart ranking automatically prioritizes the best donor matches first.
+              </Text>
+            </View>
+            <View style={styles.heroLiveBadge}>
+              <Ionicons name="pulse-outline" size={15} color="#fff" />
+              <Text style={styles.heroLiveBadgeText}>Live</Text>
+            </View>
+          </View>
+          <View style={styles.heroStatsRow}>
+            <View style={styles.heroStatCard}>
+              <Text style={styles.heroStatLabel}>Area</Text>
+              <Text style={styles.heroStatValue}>{city || requesterProfile?.city || "Any location"}</Text>
+            </View>
+            <View style={styles.heroStatCard}>
+              <Text style={styles.heroStatLabel}>Blood type</Text>
+              <Text style={styles.heroStatValue}>{selectedBloodType || "Any type"}</Text>
+            </View>
+          </View>
+          <View style={styles.heroPillsRow}>
+            <View style={styles.heroPill}>
+              <Text style={styles.heroPillText}>Smart ranking</Text>
+            </View>
+            <View style={styles.heroPill}>
+              <Text style={styles.heroPillText}>Nearby donors</Text>
+            </View>
+            <View style={styles.heroPill}>
+              <Text style={styles.heroPillText}>Map search</Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       <Card style={styles.filterCard}>
-        <Card.Content>
+        <Card.Content style={styles.filterCardContent}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionEyebrow}>Filters</Text>
+            <Text style={styles.sectionTitle}>Refine your search</Text>
+          </View>
           <View style={styles.inlineToggleRow}>
-            <Text variant="titleMedium">Blood Type</Text>
+            <View style={styles.filterIntro}>
+              <Text style={styles.filterFieldLabel}>Blood Type</Text>
+              <Text style={styles.filterFieldHint}>Choose a specific blood type or search all.</Text>
+            </View>
             <TouchableOpacity
               style={[styles.filterTogglePill, showAdvancedFilters && styles.filterTogglePillOn]}
               onPress={() => setShowAdvancedFilters((prev) => !prev)}
@@ -485,7 +565,7 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
 
           {showAdvancedFilters && (
             <>
-              <Text variant="titleMedium" style={styles.filterLabel}>City / Municipality</Text>
+              <Text style={styles.filterLabel}>City / Municipality</Text>
               <TextInput
                 mode="outlined"
                 value={city}
@@ -503,7 +583,7 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
                 </View>
               ) : null}
 
-              <Text variant="titleMedium" style={styles.filterLabel}>Distance Range (km)</Text>
+              <Text style={styles.filterLabel}>Distance Range (km)</Text>
               <TextInput
                 mode="outlined"
                 value={searchRadiusKm}
@@ -514,11 +594,12 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
               />
 
               <View style={styles.locationActions}>
-                <Button mode="outlined" onPress={useMyLocationForSearch}>
+                <Button mode="outlined" textColor="#7f1d1d" onPress={useMyLocationForSearch}>
                   Use My Location
                 </Button>
                 <Button
                   mode="outlined"
+                  textColor="#7f1d1d"
                   onPress={() =>
                     navigation.navigate("MapLocationPicker", {
                       returnScreen: "SearchDonors",
@@ -533,7 +614,15 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
             </>
           )}
 
-          <Button mode="contained" onPress={searchDonors} loading={loading} disabled={loading} style={styles.searchButton}>
+          <Button
+            mode="contained"
+            buttonColor="#7f1d1d"
+            onPress={searchDonors}
+            loading={loading}
+            disabled={loading}
+            style={styles.searchButton}
+            labelStyle={styles.searchButtonLabel}
+          >
             Search Donors
           </Button>
           {showAdvancedFilters && cityLookupLoading && <Text style={styles.lookupHint}>Locating city or municipality on map...</Text>}
@@ -545,7 +634,7 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
           <Card.Content style={styles.mapContent}>
             <View style={styles.mapHeaderRow}>
               <Text style={styles.mapTitle}>Donor Map</Text>
-              <Button mode="text" onPress={openCenterInGoogleMaps} compact>
+              <Button mode="text" textColor="#7f1d1d" onPress={openCenterInGoogleMaps} compact>
                 Open in Google Maps
               </Button>
             </View>
@@ -565,6 +654,7 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
       {!!error && <Text style={styles.error}>{error}</Text>}
 
       <View style={styles.resultsHeader}>
+        <Text style={styles.resultsHeaderEyebrow}>Results</Text>
         <Text style={styles.resultsHeaderText}>
           {loading ? "Searching donors..." : `${donors.length} donor${donors.length === 1 ? "" : "s"} found`}
         </Text>
@@ -579,6 +669,8 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
 
   return (
     <View style={[styles.container, isDesktop && styles.containerDesktop]}>
+      <View style={styles.backgroundOrbTop} pointerEvents="none" />
+      <View style={styles.backgroundOrbBottom} pointerEvents="none" />
       <FlatList
         data={donors}
         keyExtractor={(item) => item.id}
@@ -604,30 +696,174 @@ export default function SearchDonorsScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#f5f5f5" },
+  container: { flex: 1, padding: 16, backgroundColor: "#f6f2ec" },
   containerDesktop: { maxWidth: 1040, alignSelf: "center", width: "100%" },
+  backgroundOrbTop: {
+    position: "absolute",
+    top: -70,
+    right: -40,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "rgba(244, 63, 94, 0.08)",
+  },
+  backgroundOrbBottom: {
+    position: "absolute",
+    bottom: 20,
+    left: -70,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(251, 146, 60, 0.08)",
+  },
+  heroShell: {
+    position: "relative",
+    marginBottom: 10,
+  },
+  heroGlowPrimary: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    right: 40,
+    height: 110,
+    borderRadius: 28,
+    backgroundColor: "rgba(190, 24, 93, 0.14)",
+  },
+  heroGlowSecondary: {
+    position: "absolute",
+    top: 34,
+    right: 0,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: "rgba(249, 115, 22, 0.13)",
+  },
   pageHeader: {
     marginBottom: 10,
-    backgroundColor: "#fff",
+    backgroundColor: "#7f1d1d",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 12,
+    borderColor: "rgba(255,255,255,0.12)",
+    borderRadius: 28,
     padding: 14,
   },
-  pageTitle: {
-    fontSize: 24,
+  heroEyebrow: {
+    color: "#fecdd3",
+    fontSize: 12,
     fontWeight: "800",
-    color: "#b91c1c",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    marginBottom: 6,
+  },
+  heroTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  heroTextWrap: {
+    flex: 1,
+  },
+  heroLiveBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+  },
+  heroLiveBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  pageTitle: {
+    fontSize: 30,
+    fontWeight: "900",
+    lineHeight: 34,
+    color: "#fffaf5",
   },
   pageSubtitle: {
-    marginTop: 4,
-    color: "#4b5563",
+    marginTop: 8,
+    color: "#ffe4e6",
     fontSize: 14,
+    lineHeight: 22,
+  },
+  heroStatsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 18,
+  },
+  heroStatCard: {
+    flex: 1,
+    borderRadius: 18,
+    padding: 12,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  heroStatLabel: {
+    color: "#fecdd3",
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  heroStatValue: {
+    marginTop: 4,
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "800",
+    lineHeight: 20,
+  },
+  heroPillsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 16,
+  },
+  heroPill: {
+    borderRadius: 999,
+    backgroundColor: "#fff1f2",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  heroPillText: {
+    color: "#9f1239",
+    fontSize: 12,
+    fontWeight: "800",
   },
   filterCard: {
     marginTop: 10,
     marginBottom: 10,
-    borderRadius: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#eadfd5",
+    backgroundColor: "#fffdf9",
+  },
+  filterCardContent: {
+    padding: 16,
+  },
+  sectionHeader: {
+    marginBottom: 12,
+  },
+  sectionEyebrow: {
+    color: "#be123c",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  sectionTitle: {
+    marginTop: 2,
+    color: "#111827",
+    fontSize: 22,
+    fontWeight: "900",
+  },
+  filterIntro: {
+    flex: 1,
+    paddingRight: 6,
   },
   picker: { height: 50, width: "100%" },
   inlineToggleRow: {
@@ -693,7 +929,22 @@ const styles = StyleSheet.create({
   filterToggleStateOn: {
     color: "#b91c1c",
   },
-  filterLabel: { marginTop: 10 },
+  filterFieldLabel: {
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  filterFieldHint: {
+    marginTop: 2,
+    color: "#6b7280",
+    fontSize: 12,
+  },
+  filterLabel: {
+    marginTop: 12,
+    color: "#111827",
+    fontSize: 15,
+    fontWeight: "800",
+  },
   input: { marginVertical: 5 },
   placeSuggestions: {
     marginTop: 2,
@@ -720,8 +971,16 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 8,
     marginBottom: 4,
+    flexWrap: "wrap",
   },
-  searchButton: { marginTop: 10 },
+  searchButton: {
+    marginTop: 12,
+    borderRadius: 14,
+  },
+  searchButtonLabel: {
+    fontSize: 15,
+    fontWeight: "900",
+  },
   lookupHint: {
     marginTop: 8,
     color: "#2563eb",
@@ -729,9 +988,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   mapCard: {
-    borderRadius: 12,
+    borderRadius: 24,
     overflow: "hidden",
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#eadfd5",
+    backgroundColor: "#fffdf9",
   },
   mapContent: {
     paddingBottom: 14,
@@ -754,15 +1016,24 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   resultsHeader: {
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  resultsHeaderEyebrow: {
+    color: "#be123c",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
   resultsHeaderText: {
-    color: "#4b5563",
-    fontWeight: "700",
+    marginTop: 2,
+    color: "#111827",
+    fontSize: 22,
+    fontWeight: "900",
   },
   cooldownHint: {
-    marginTop: 2,
+    marginTop: 4,
     color: "#92400e",
     fontWeight: "600",
     fontSize: 12,
@@ -778,9 +1049,9 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 12,
-    backgroundColor: "#fff",
+    borderColor: "#eadfd5",
+    borderRadius: 24,
+    backgroundColor: "#fffdf9",
     padding: 18,
     marginTop: 14,
     alignItems: "center",
@@ -797,9 +1068,55 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   emptyAction: {
-    borderRadius: 8,
+    borderRadius: 12,
   },
-  card: { marginBottom: 10 },
+  card: {
+    marginBottom: 12,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "#eadfd5",
+    backgroundColor: "#fff",
+  },
+  donorCardContent: {
+    paddingBottom: 8,
+  },
+  donorTopRow: {
+    marginBottom: 10,
+  },
+  donorIdentityWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  donorAvatarFallback: {
+    backgroundColor: "#fde2e8",
+  },
+  donorIdentityText: {
+    flex: 1,
+  },
+  donorName: {
+    color: "#111827",
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  donorMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 6,
+  },
+  bloodTypeBadge: {
+    borderRadius: 999,
+    backgroundColor: "#fff1f2",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  bloodTypeBadgeText: {
+    color: "#9f1239",
+    fontSize: 12,
+    fontWeight: "900",
+  },
   rankRow: {
     marginBottom: 7,
     gap: 4,
@@ -826,6 +1143,48 @@ const styles = StyleSheet.create({
     color: "#4b5563",
     fontSize: 12,
     fontWeight: "600",
+  },
+  verifiedStatusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: 999,
+    backgroundColor: "#f0fdf4",
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  verifiedStatusText: {
+    color: "#15803d",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  infoChipList: {
+    gap: 8,
+  },
+  infoChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 14,
+    backgroundColor: "#fff8ef",
+    borderWidth: 1,
+    borderColor: "#f3e5d1",
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  infoChipText: {
+    flex: 1,
+    color: "#4b5563",
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  donorActions: {
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingBottom: 14,
   },
 });
 

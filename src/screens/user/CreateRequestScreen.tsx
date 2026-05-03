@@ -11,14 +11,17 @@ import {
 } from "react-native";
 import { Button, Dialog, Portal } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
-import { addDoc, collection, doc, getDoc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { auth, db } from "../../services/firebaseConfig";
 import { useResponsive } from "../../utils/responsive";
 import { createAdminNotification } from "../../utils/createAdminNotification";
 import { buildSlaDeadlineDate, getSlaMinutes } from "../../utils/requestSla";
 import OsmMapEmbed from "../../components/OsmMapEmbed";
-import { getConversationId } from "../../utils/chatHelpers";
+import { ensureConversationForUsers } from "../../utils/chatHelpers";
 import { syncPublicCityAvailability } from "../../utils/publicCityAvailability";
+import { consumeRateLimit, isRateLimitError } from "../../utils/rateLimiter";
+import { hasSuspiciousPayload, sanitizePlainText } from "../../utils/inputSecurity";
+import { getAddressLocalityLabel } from "../../utils/locationAddress";
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const URGENCY_LEVELS = ["Normal", "Urgent", "Critical"];
@@ -45,6 +48,7 @@ export default function CreateRequestScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(false);
   const [successRequestId, setSuccessRequestId] = useState<string | null>(null);
   const [successPatientName, setSuccessPatientName] = useState("");
+  const [validationMessage, setValidationMessage] = useState("");
   const { isDesktop } = useResponsive();
 
   const resetForm = () => {
@@ -56,6 +60,7 @@ export default function CreateRequestScreen({ navigation, route }: any) {
     setContactNumber("");
     setSelectedLocation(null);
     setSelectedLocationLabel("");
+    setValidationMessage("");
   };
 
   const goToRecentRequest = (requestId: string, options?: { justCreated?: boolean; justUpdated?: boolean }) => {
@@ -94,7 +99,7 @@ export default function CreateRequestScreen({ navigation, route }: any) {
       setSelectedLocationLabel(route.params?.selectedLocationLabel || "");
       const selectedAddress = route.params?.selectedAddress;
 
-      const autoCity = selectedAddress?.city || selectedAddress?.subregion || "";
+      const autoCity = getAddressLocalityLabel(selectedAddress);
       if (autoCity) setCity(autoCity);
     }
   }, [
@@ -107,8 +112,22 @@ export default function CreateRequestScreen({ navigation, route }: any) {
   ]);
 
   const handleSubmit = async () => {
-    if (!patientName || !hospital || !city.trim() || !contactNumber || !selectedLocation) {
-      Alert.alert("Error", "Please fill all required fields, including city and location.");
+    const safePatientName = sanitizePlainText(patientName, 120);
+    const safeHospital = sanitizePlainText(hospital, 180);
+    const safeCity = sanitizePlainText(city, 80);
+    const safeContactNumber = sanitizePlainText(contactNumber, 24);
+
+    if (!safePatientName || !safeHospital || !safeCity || !safeContactNumber) {
+      setValidationMessage("Please fill all required fields before submitting your blood request.");
+      return;
+    }
+    setValidationMessage("");
+    if (
+      hasSuspiciousPayload(safePatientName) ||
+      hasSuspiciousPayload(safeHospital) ||
+      hasSuspiciousPayload(safeCity)
+    ) {
+      Alert.alert("Blocked", "Request contains unsafe text patterns. Please revise and try again.");
       return;
     }
 
@@ -119,14 +138,14 @@ export default function CreateRequestScreen({ navigation, route }: any) {
 
       if (isEditMode) {
         const payload: Record<string, any> = {
-          patientName,
-          hospital,
-          city: city.trim(),
+          patientName: safePatientName,
+          hospital: safeHospital,
+          city: safeCity,
           bloodTypeNeeded: bloodType,
           urgency,
-          contactNumber,
-          location: selectedLocation,
-          locationLabel: selectedLocationLabel || null,
+          contactNumber: safeContactNumber,
+          location: selectedLocation || null,
+          locationLabel: selectedLocation ? selectedLocationLabel || safeCity : null,
           updatedAt: serverTimestamp(),
         };
 
@@ -139,16 +158,18 @@ export default function CreateRequestScreen({ navigation, route }: any) {
         Alert.alert("Success", "Request updated successfully.");
         goToRecentRequest(editRequestId, { justUpdated: true });
       } else {
+        await consumeRateLimit(db, user.uid, "create_request");
+
         const requestRef = await addDoc(collection(db, "requests"), {
           requesterId: user.uid,
-          patientName,
-          hospital,
-          city: city.trim(),
+          patientName: safePatientName,
+          hospital: safeHospital,
+          city: safeCity,
           bloodTypeNeeded: bloodType,
           urgency,
-          contactNumber,
-          location: selectedLocation,
-          locationLabel: selectedLocationLabel || null,
+          contactNumber: safeContactNumber,
+          location: selectedLocation || null,
+          locationLabel: selectedLocation ? selectedLocationLabel || safeCity : null,
           status: "pending",
           createdAt: serverTimestamp(),
           slaDeadlineAt: buildSlaDeadlineDate(urgency),
@@ -157,7 +178,7 @@ export default function CreateRequestScreen({ navigation, route }: any) {
         await createAdminNotification(
           "request_pending",
           "New Blood Request",
-          `${patientName} (${bloodType}) request submitted at ${hospital}.`,
+          `${safePatientName} (${bloodType}) request submitted at ${safeHospital}.`,
           { requestId: requestRef.id, requesterId: user.uid, urgency, bloodType }
         );
         await syncPublicCityAvailability(db);
@@ -167,6 +188,10 @@ export default function CreateRequestScreen({ navigation, route }: any) {
         setSuccessPatientName(patientName.trim());
       }
     } catch (error: any) {
+      if (isRateLimitError(error)) {
+        Alert.alert("Slow down", `Please wait ${error.retryAfterSeconds}s before creating another request.`);
+        return;
+      }
       Alert.alert("Error", error.message);
     } finally {
       setLoading(false);
@@ -219,16 +244,7 @@ export default function CreateRequestScreen({ navigation, route }: any) {
     }
 
     try {
-      const conversationId = getConversationId(user.uid, donorContext.donorId);
-      const convRef = doc(db, "conversations", conversationId);
-      const convSnap = await getDoc(convRef);
-      if (!convSnap.exists()) {
-        await setDoc(convRef, {
-          participants: [user.uid, donorContext.donorId],
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-      }
+      const conversationId = await ensureConversationForUsers(db, user.uid, donorContext.donorId);
 
       const tabParent = navigation.getParent?.();
       if (tabParent) {
@@ -263,11 +279,21 @@ export default function CreateRequestScreen({ navigation, route }: any) {
         </View>
       )}
 
+      {validationMessage ? (
+        <View style={styles.validationBanner}>
+          <Text style={styles.validationTitle}>Required fields missing</Text>
+          <Text style={styles.validationText}>{validationMessage}</Text>
+        </View>
+      ) : null}
+
       <Text style={styles.label}>Patient Name *</Text>
       <TextInput
         style={styles.input}
         value={patientName}
-        onChangeText={setPatientName}
+        onChangeText={(value) => {
+          setPatientName(value);
+          if (validationMessage) setValidationMessage("");
+        }}
         placeholder="Enter patient name"
       />
 
@@ -275,15 +301,21 @@ export default function CreateRequestScreen({ navigation, route }: any) {
       <TextInput
         style={styles.input}
         value={hospital}
-        onChangeText={setHospital}
+        onChangeText={(value) => {
+          setHospital(value);
+          if (validationMessage) setValidationMessage("");
+        }}
         placeholder="Enter hospital name"
       />
 
-      <Text style={styles.label}>City *</Text>
+      <Text style={styles.label}>City / Municipality *</Text>
       <TextInput
         style={styles.input}
         value={city}
-        onChangeText={setCity}
+        onChangeText={(value) => {
+          setCity(value);
+          if (validationMessage) setValidationMessage("");
+        }}
         placeholder="Auto-filled from map or enter manually"
       />
 
@@ -312,7 +344,10 @@ export default function CreateRequestScreen({ navigation, route }: any) {
       <TextInput
         style={styles.input}
         value={contactNumber}
-        onChangeText={setContactNumber}
+        onChangeText={(value) => {
+          setContactNumber(value);
+          if (validationMessage) setValidationMessage("");
+        }}
         placeholder="e.g. 09123456789"
         keyboardType="phone-pad"
       />
@@ -357,15 +392,15 @@ export default function CreateRequestScreen({ navigation, route }: any) {
         </View>
       ) : null}
 
-      <Text style={styles.label}>Location *</Text>
+      <Text style={styles.label}>Location on Map (Optional)</Text>
       <View style={styles.locationCard}>
         <Text style={styles.locationText}>
           {selectedLocation
             ? selectedLocationLabel || `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`
-            : "No location selected yet."}
+            : "No map pin selected. You can still create the request using your city only."}
         </Text>
         <Text style={styles.locationPrivacyHint}>
-          Privacy: only your city is shown publicly until a donor accepts this request.
+          Add a map pin for faster matching, or leave it blank and use your city only.
         </Text>
         <Button
           mode="outlined"
@@ -374,6 +409,7 @@ export default function CreateRequestScreen({ navigation, route }: any) {
           onPress={() =>
             navigation.navigate("MapLocationPicker", {
               returnScreen: "CreateRequest",
+              returnRouteKey: route.key,
               editRequestId,
               originalStatus,
               initialLocation: selectedLocation,
@@ -390,7 +426,7 @@ export default function CreateRequestScreen({ navigation, route }: any) {
             })
           }
         >
-          {selectedLocation ? "Update Pin on Map" : "Set Location on Map"}
+          {selectedLocation ? "Update Pin on Map" : "Add Location on Map"}
         </Button>
       </View>
 
@@ -464,6 +500,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: "#4b5563",
     fontSize: 14,
+  },
+  validationBanner: {
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    borderRadius: 14,
+    backgroundColor: "#fff1f2",
+    padding: 14,
+  },
+  validationTitle: {
+    color: "#b91c1c",
+    fontWeight: "800",
+    fontSize: 15,
+  },
+  validationText: {
+    marginTop: 4,
+    color: "#7f1d1d",
+    fontWeight: "600",
+    lineHeight: 20,
   },
   label: { fontSize: 16, fontWeight: "600", marginTop: 15, marginBottom: 5 },
   input: {

@@ -9,7 +9,6 @@ import {
   ScrollView,
   Linking,
   TouchableOpacity,
-  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Button as PaperButton } from "react-native-paper";
@@ -90,6 +89,56 @@ export default function DonorDetailScreen({ route, navigation }: any) {
     } catch {
       Alert.alert("Error", "Unable to open SMS app.");
     }
+  };
+
+  const openCreateRequest = () => {
+    if (!donor?.bloodType) {
+      Alert.alert("Unavailable", "This donor profile is missing a blood type.");
+      return;
+    }
+
+    const params = {
+      fromFindDonor: true,
+      prefilledBloodType: donor.bloodType,
+      donorContext: {
+        donorId: donor.id,
+        fullName: donor.fullName || "Donor",
+        bloodType: donor.bloodType || "",
+        contactNumber: donor.contactNumber || "",
+        city: donor.city || "",
+        location: donor.location || null,
+      },
+    };
+
+    const routeNames = navigation.getState?.()?.routeNames || [];
+    if (routeNames.includes("CreateRequest")) {
+      navigation.navigate("CreateRequest", params);
+      return;
+    }
+
+    const tabParent = navigation.getParent?.();
+    if (tabParent) {
+      tabParent.navigate("Search", {
+        screen: "CreateRequest",
+        params,
+      });
+      return;
+    }
+
+    navigation.navigate("CreateRequest", params);
+  };
+
+  const confirmCreateRequest = () => {
+    if (!canRequestBlood) return;
+
+    Alert.alert(
+      "Create Request",
+      `Create a blood request using ${donor?.fullName || "this donor"} as the selected donor reference?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Continue", onPress: openCreateRequest },
+      ]
+    );
   };
 
   const openPinnedLocation = async () => {
@@ -197,80 +246,124 @@ export default function DonorDetailScreen({ route, navigation }: any) {
 
   if (!donor) return null;
 
-  const isDonor = donor.bloodType && donor.availabilityStatus === "available";
+  const isDonor = Boolean(donor.bloodType);
   const isAdminProfile = String(donor.role || "").toLowerCase() === "admin";
+  const isVerifiedDonor = String(donor.donorStatus || "").toLowerCase() === "verified";
+  const isAvailableNow = String(donor.availabilityStatus || "").toLowerCase() === "available";
+  const hasPinnedMap =
+    typeof donor?.location?.latitude === "number" &&
+    typeof donor?.location?.longitude === "number";
+  const canRequestBlood = role !== "admin" && !isOwnProfile && Boolean(donor.bloodType);
+  const ageLabel = donor.dateOfBirth
+    ? `${new Date().getFullYear() - new Date(donor.dateOfBirth).getFullYear()} years old`
+    : "Not available";
+  const availabilityLabel = isAvailableNow
+    ? "Currently available"
+    : donor.availabilityStatus
+      ? String(donor.availabilityStatus).replace(/_/g, " ")
+      : "Availability not set";
 
   return (
     <ScrollView contentContainerStyle={[styles.container, isDesktop && styles.containerDesktop]}>
-      {navigation.canGoBack() && (
-        <Pressable onPress={() => navigation.goBack()} style={styles.backLink}>
-          <Text style={styles.backLinkText}>{"< Back"}</Text>
-        </Pressable>
-      )}
-
       <View style={styles.profileHeader}>
-        <View style={styles.photoSection}>
-          {isAdminProfile ? (
-            <Image source={appLogo} style={styles.photo} />
-          ) : donor.photoURL ? (
-            <Image source={{ uri: donor.photoURL }} style={styles.photo} />
-          ) : (
-            <Image source={getDefaultImage()} style={styles.photo} />
-          )}
+        <View style={[styles.heroTopRow, isDesktop && styles.heroTopRowDesktop]}>
+          <View style={styles.photoSection}>
+            {isAdminProfile ? (
+              <Image source={appLogo} style={styles.photo} />
+            ) : donor.photoURL ? (
+              <Image source={{ uri: donor.photoURL }} style={styles.photo} />
+            ) : (
+              <Image source={getDefaultImage()} style={styles.photo} />
+            )}
+          </View>
+
+          <View style={[styles.headerInfo, isDesktop && styles.headerInfoDesktop]}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>{donor.fullName || "Anonymous"}</Text>
+              {isVerifiedDonor ? (
+                <View style={[styles.statusPill, styles.statusPillVerified]}>
+                  <Ionicons name="checkmark-circle" size={14} color="#065f46" />
+                  <Text style={[styles.statusPillText, styles.statusPillTextVerified]}>Verified</Text>
+                </View>
+              ) : (
+                <View style={[styles.statusPill, styles.statusPillPending]}>
+                  <Ionicons name="time-outline" size={14} color="#92400e" />
+                  <Text style={[styles.statusPillText, styles.statusPillTextPending]}>Pending Review</Text>
+                </View>
+              )}
+            </View>
+
+            <Text style={styles.heroSubtitle}>
+              {isAdminProfile ? "LifeCycle administrator" : availabilityLabel}
+            </Text>
+
+            <View style={styles.badgeRow}>
+              <View style={[styles.infoBadge, styles.infoBadgePrimary]}>
+                <Ionicons name="water-outline" size={14} color="#991b1b" />
+                <Text style={[styles.infoBadgeText, styles.infoBadgeTextPrimary]}>
+                  {donor.bloodType || "Blood type N/A"}
+                </Text>
+              </View>
+              <View style={styles.infoBadge}>
+                <Ionicons name="location-outline" size={14} color="#4b5563" />
+                <Text style={styles.infoBadgeText}>{donor.city || "Unknown city"}</Text>
+              </View>
+              <View style={[styles.infoBadge, isAvailableNow ? styles.infoBadgeSuccess : styles.infoBadgeMuted]}>
+                <Ionicons
+                  name={isAvailableNow ? "flash-outline" : "pause-outline"}
+                  size={14}
+                  color={isAvailableNow ? "#166534" : "#6b7280"}
+                />
+                <Text style={[styles.infoBadgeText, isAvailableNow && styles.infoBadgeTextSuccess]}>
+                  {availabilityLabel}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.meta}>Gender: {donor.gender || "Not specified"}</Text>
+            <Text style={styles.meta}>Age: {ageLabel}</Text>
+            <Text style={styles.meta}>Contact: {donor.contactNumber || "Not provided"}</Text>
+            {!isAdminProfile ? <Text style={styles.uidMeta}>UID: {donor.id}</Text> : null}
+          </View>
         </View>
 
-        <View style={styles.headerInfo}>
-          <Text style={styles.name}>{donor.fullName || "Anonymous"}</Text>
-          <Text style={styles.meta}>Gender: {donor.gender || "Not specified"}</Text>
-          <Text style={styles.meta}>
-            Age: {donor.dateOfBirth ? `${new Date().getFullYear() - new Date(donor.dateOfBirth).getFullYear()} years` : "Not available"}
-          </Text>
-          <Text style={styles.meta}>Contact: {donor.contactNumber || "Not provided"}</Text>
-          {!isAdminProfile ? <Text style={styles.uidMeta}>UID: {donor.id}</Text> : null}
-        </View>
+        {canRequestBlood ? (
+          <PaperButton mode="contained" icon="water" onPress={confirmCreateRequest} style={styles.heroRequestButton}>
+            Request Blood
+          </PaperButton>
+        ) : null}
       </View>
 
       <View style={styles.infoSection}>
         {isDonor ? (
           <>
             <Text style={styles.sectionTitle}>Donor Information</Text>
-            <Text style={styles.label}>Blood Type</Text>
-            <Text style={styles.value}>{donor.bloodType}</Text>
 
-            <Text style={styles.label}>Location</Text>
+            <View style={styles.detailGrid}>
+              <View style={styles.detailCard}>
+                <Text style={styles.label}>Blood Type</Text>
+                <Text style={styles.value}>{donor.bloodType || "Not set"}</Text>
+              </View>
+              <View style={styles.detailCard}>
+                <Text style={styles.label}>Availability</Text>
+                <Text style={styles.value}>{availabilityLabel}</Text>
+              </View>
+              <View style={styles.detailCard}>
+                <Text style={styles.label}>City</Text>
+                <Text style={styles.value}>{donor.city || "Not provided"}</Text>
+              </View>
+              <View style={styles.detailCard}>
+                <Text style={styles.label}>Contact Number</Text>
+                <Text style={styles.value}>{donor.contactNumber || "Not provided"}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.label}>Location Details</Text>
             <Text style={styles.value}>{getDonorLocationText(donor, revealExactLocation)}</Text>
             {!revealExactLocation && (
-              <Text style={styles.privacyHint}>Detailed address is hidden for privacy until a request is accepted.</Text>
-            )}
-
-            {revealExactLocation &&
-              typeof donor?.location?.latitude === "number" &&
-              typeof donor?.location?.longitude === "number" && (
-              <>
-                <View style={styles.mapCard}>
-                  <OsmMapEmbed latitude={donor.location.latitude} longitude={donor.location.longitude} height={240} />
-                </View>
-                <TouchableOpacity onPress={openPinnedLocation} style={styles.mapLink}>
-                  <Ionicons name="navigate-circle-outline" size={20} color="#d32f2f" />
-                  <Text style={styles.mapLinkText}>Open in Google Maps</Text>
-                </TouchableOpacity>
-              </>
-            )}
-
-            <Text style={styles.label}>Medical Certificate</Text>
-            {donor.medicalCertificateURL ? (
-              <TouchableOpacity
-                onPress={() => Linking.openURL(donor.medicalCertificateURL)}
-                style={styles.certificatePresent}
-              >
-                <Ionicons name="document-text" size={22} color="#16a34a" />
-                <Text style={styles.certificateText}>View Certificate</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.certificateMissing}>
-                <Ionicons name="document-outline" size={22} color="#999" />
-                <Text style={styles.certificateMissingText}>No certificate</Text>
-              </View>
+              <Text style={styles.privacyHint}>
+                City details stay visible here. The donor&apos;s pinned map below helps with orientation.
+              </Text>
             )}
           </>
         ) : (
@@ -278,11 +371,79 @@ export default function DonorDetailScreen({ route, navigation }: any) {
         )}
       </View>
 
+      <View style={styles.mapSection}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitleDark}>Map Preview</Text>
+          {hasPinnedMap ? (
+            <View style={styles.mapStatusPill}>
+              <Ionicons name="pin-outline" size={14} color="#991b1b" />
+              <Text style={styles.mapStatusText}>Pinned by donor</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {hasPinnedMap ? (
+          <>
+            <View style={styles.mapCard}>
+              <OsmMapEmbed latitude={donor.location.latitude} longitude={donor.location.longitude} height={240} />
+            </View>
+            <TouchableOpacity onPress={openPinnedLocation} style={styles.mapLink}>
+              <Ionicons name="navigate-circle-outline" size={20} color="#d32f2f" />
+              <Text style={styles.mapLinkText}>Open in Google Maps</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <Text style={styles.noDonorText}>This donor has not shared a map pin yet.</Text>
+        )}
+      </View>
+
+      {role === "admin" ? (
+        <View style={styles.infoSection}>
+          <Text style={styles.sectionTitle}>Verification Files</Text>
+          <Text style={styles.label}>Medical Certificate</Text>
+          {donor.medicalCertificateURL ? (
+            <TouchableOpacity
+              onPress={() => Linking.openURL(donor.medicalCertificateURL)}
+              style={styles.certificatePresent}
+            >
+              <Ionicons name="document-text" size={22} color="#16a34a" />
+              <Text style={styles.certificateText}>View Certificate</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.certificateMissing}>
+              <Ionicons name="document-outline" size={22} color="#999" />
+              <Text style={styles.certificateMissingText}>No certificate uploaded yet</Text>
+            </View>
+          )}
+
+          <Text style={styles.label}>Valid ID</Text>
+          {donor.validIdURL ? (
+            <TouchableOpacity
+              onPress={() => Linking.openURL(donor.validIdURL)}
+              style={styles.certificatePresent}
+            >
+              <Ionicons name="card-outline" size={22} color="#16a34a" />
+              <Text style={styles.certificateText}>View Valid ID</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.certificateMissing}>
+              <Ionicons name="card-outline" size={22} color="#999" />
+              <Text style={styles.certificateMissingText}>No valid ID uploaded yet</Text>
+            </View>
+          )}
+        </View>
+      ) : null}
+
       {role !== "admin" && !isOwnProfile && (
         <View style={styles.buttonContainer}>
-          <PaperButton mode="contained-tonal" onPress={callDonor} style={styles.actionButton}>Call</PaperButton>
-          <PaperButton mode="contained-tonal" onPress={messageDonor} style={styles.actionButton}>Message (SMS)</PaperButton>
-          <PaperButton mode="contained" onPress={startConversation} style={styles.actionButton}>Chat</PaperButton>
+          <View style={styles.quickActionRow}>
+            <PaperButton mode="contained-tonal" onPress={callDonor} style={styles.inlineActionButton}>Call</PaperButton>
+            <PaperButton mode="contained-tonal" onPress={messageDonor} style={styles.inlineActionButton}>Message</PaperButton>
+          </View>
+          <View style={styles.quickActionRow}>
+            <PaperButton mode="contained" onPress={startConversation} style={styles.inlineActionButton}>Chat</PaperButton>
+          </View>
+
           <View style={styles.safetyCard}>
             <Text style={styles.safetyTitle}>Safety Tools</Text>
             <Text style={styles.safetySubtitle}>Reports go to admin Moderation Queue.</Text>
@@ -302,24 +463,26 @@ export default function DonorDetailScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, paddingBottom: 40, backgroundColor: "#f5f5f5", gap: 10 },
+  container: { padding: 20, paddingBottom: 40, backgroundColor: "#f5f5f5", gap: 12 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  backLink: {
-    alignSelf: "flex-start",
-    marginBottom: 4,
-  },
-  backLinkText: {
-    color: "#6b7280",
-    fontWeight: "700",
-  },
   profileHeader: {
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 12,
+    borderRadius: 20,
     backgroundColor: "#fff",
-    padding: 14,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#f1d6d6",
+    shadowColor: "#b91c1c",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  heroTopRow: {
+    gap: 16,
+    alignItems: "center",
+  },
+  heroTopRowDesktop: {
     flexDirection: "row",
-    gap: 14,
     flexWrap: "wrap",
   },
   photoSection: {
@@ -327,57 +490,186 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   photo: {
-    width: 132,
-    height: 132,
-    borderRadius: 66,
-    borderWidth: 2,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
     borderColor: "#d32f2f",
   },
   headerInfo: {
-    flex: 1,
-    minWidth: 220,
+    width: "100%",
     justifyContent: "center",
   },
-  name: { fontSize: 28, fontWeight: "800", color: "#111827", marginBottom: 8 },
-  meta: { fontSize: 16, color: "#374151", marginBottom: 4 },
+  headerInfoDesktop: {
+    flex: 1,
+    minWidth: 200,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 6,
+  },
+  name: { fontSize: 27, fontWeight: "800", color: "#111827", flexShrink: 1 },
+  heroSubtitle: {
+    fontSize: 15,
+    color: "#6b7280",
+    marginBottom: 10,
+    fontWeight: "600",
+  },
+  badgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 10,
+  },
+  infoBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  infoBadgePrimary: {
+    backgroundColor: "#fee2e2",
+  },
+  infoBadgeSuccess: {
+    backgroundColor: "#dcfce7",
+  },
+  infoBadgeMuted: {
+    backgroundColor: "#e5e7eb",
+  },
+  infoBadgeText: {
+    color: "#374151",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  infoBadgeTextPrimary: {
+    color: "#991b1b",
+  },
+  infoBadgeTextSuccess: {
+    color: "#166534",
+  },
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  statusPillVerified: {
+    backgroundColor: "#d1fae5",
+  },
+  statusPillPending: {
+    backgroundColor: "#fef3c7",
+  },
+  statusPillText: {
+    fontWeight: "800",
+    fontSize: 12,
+  },
+  statusPillTextVerified: {
+    color: "#065f46",
+  },
+  statusPillTextPending: {
+    color: "#92400e",
+  },
+  meta: { fontSize: 15, color: "#374151", marginBottom: 3 },
   uidMeta: { fontSize: 12, color: "#4f46e5", fontWeight: "700", marginTop: 4 },
+  heroRequestButton: {
+    marginTop: 16,
+    borderRadius: 12,
+  },
   infoSection: {
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    borderRadius: 12,
+    borderRadius: 18,
     backgroundColor: "#fff",
-    padding: 14,
+    padding: 16,
   },
-  label: { fontSize: 15, fontWeight: "700", marginTop: 10, color: "#4b5563" },
-  value: { fontSize: 17, marginTop: 3, color: "#111827" },
-  privacyHint: { marginTop: 2, color: "#92400e", fontSize: 12, fontWeight: "600" },
+  mapSection: {
+    borderWidth: 1,
+    borderColor: "#f1d6d6",
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    padding: 16,
+  },
+  detailGrid: {
+    gap: 10,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  detailCard: {
+    borderRadius: 14,
+    backgroundColor: "#fafafa",
+    borderWidth: 1,
+    borderColor: "#ececec",
+    padding: 12,
+  },
+  label: { fontSize: 14, fontWeight: "700", marginTop: 0, color: "#6b7280" },
+  value: { fontSize: 17, marginTop: 4, color: "#111827", fontWeight: "700" },
+  privacyHint: { marginTop: 6, color: "#92400e", fontSize: 12, fontWeight: "600" },
   sectionTitle: {
     fontSize: 22,
     fontWeight: "800",
-    marginBottom: 6,
+    marginBottom: 10,
     color: "#b91c1c",
+  },
+  sectionTitleDark: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#111827",
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+    gap: 8,
+  },
+  mapStatusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: "#fee2e2",
+  },
+  mapStatusText: {
+    color: "#991b1b",
+    fontWeight: "700",
+    fontSize: 12,
   },
   noDonorText: {
     color: "#6b7280",
     fontSize: 15,
   },
   buttonContainer: {
-    marginTop: 2,
-    gap: 8,
+    gap: 10,
   },
-  actionButton: {
-    borderRadius: 10,
+  quickActionRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  inlineActionButton: {
+    flex: 1,
+    borderRadius: 12,
   },
   moderationRow: {
     flexDirection: "row",
     gap: 8,
+    flexWrap: "wrap",
   },
   safetyCard: {
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    borderRadius: 10,
+    borderRadius: 16,
     backgroundColor: "#fff",
-    padding: 10,
+    padding: 12,
   },
   safetyTitle: {
     color: "#111827",
@@ -418,25 +710,26 @@ const styles = StyleSheet.create({
   mapLink: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 10,
     marginBottom: 4,
     gap: 6,
+    alignSelf: "flex-start",
+    backgroundColor: "#fff5f5",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   mapLinkText: {
     color: "#d32f2f",
-    fontWeight: "600",
+    fontWeight: "700",
   },
   mapCard: {
-    marginTop: 8,
-    borderRadius: 10,
+    marginTop: 4,
+    borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#ddd",
     backgroundColor: "#e8e8e8",
-  },
-  map: {
-    width: "100%",
-    height: 240,
   },
   containerDesktop: {
     maxWidth: 900,

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   FlatList,
@@ -17,6 +16,7 @@ import {
   getDocs,
   getDoc,
   doc,
+  onSnapshot,
   updateDoc,
   writeBatch,
   deleteDoc,
@@ -56,110 +56,127 @@ export default function AdminSupportMessages({ navigation }: any) {
   const { isDesktop } = useResponsive();
   const currentUserId = auth.currentUser?.uid;
 
-  const fetchData = useCallback(async () => {
-    if (!currentUserId) return;
+  const loadConversationMeta = useCallback(
+    async (visibleConversations: Conversation[]) => {
+      if (!currentUserId) return;
 
-    try {
-      const q = query(
-        collection(db, "conversations"),
-        where("participants", "array-contains", currentUserId)
-      );
-      const snapshot = await getDocs(q);
-      const allConversations = snapshot.docs.map((conversationDoc) => ({
-        id: conversationDoc.id,
-        ...conversationDoc.data(),
-      })) as Conversation[];
+      try {
+        const otherUserIds = Array.from(
+          new Set(
+            visibleConversations
+              .map((conversation) =>
+                conversation.participants.find((participantId) => participantId !== currentUserId)
+              )
+              .filter(Boolean) as string[]
+          )
+        );
 
-      const visibleConversations = allConversations.filter(
-        (conversation) => !conversation.hiddenFor?.includes(currentUserId)
-      );
-
-      visibleConversations.sort(
-        (a, b) =>
-          (b.updatedAt?.toDate?.()?.getTime?.() || 0) -
-          (a.updatedAt?.toDate?.()?.getTime?.() || 0)
-      );
-
-      setConversations(visibleConversations);
-
-      const otherUserIds = Array.from(
-        new Set(
-          visibleConversations
-            .map((conversation) =>
-              conversation.participants.find((participantId) => participantId !== currentUserId)
-            )
-            .filter(Boolean) as string[]
-        )
-      );
-
-      const missingUserIds = otherUserIds.filter((id) => !userInfoMap[id]);
-      if (missingUserIds.length > 0) {
-        const updates: UserInfoMap = {};
+        const nextUserInfo: UserInfoMap = {};
         await Promise.all(
-          missingUserIds.map(async (otherUserId) => {
+          otherUserIds.map(async (otherUserId) => {
             try {
               const userSnap = await getDoc(doc(db, "users", otherUserId));
               const userData = userSnap.data();
-              updates[otherUserId] = {
+              nextUserInfo[otherUserId] = {
                 fullName: userData?.fullName,
                 email: userData?.email,
                 photoURL: userData?.photoURL,
                 gender: userData?.gender,
               };
             } catch {
-              updates[otherUserId] = {};
+              nextUserInfo[otherUserId] = {};
             }
           })
         );
-        setUserInfoMap((prev) => ({ ...prev, ...updates }));
-      }
+        setUserInfoMap(nextUserInfo);
 
-      const unreadMap: UnreadCounts = {};
-      await Promise.all(
-        visibleConversations.map(async (conversation) => {
-          const otherUserId = conversation.participants.find(
-            (participantId) => participantId !== currentUserId
-          );
-          if (!otherUserId) return;
-
-          const messagesRef = collection(db, "conversations", conversation.id, "messages");
-          const qMessages = query(messagesRef, where("senderId", "==", otherUserId));
-          const messagesSnap = await getDocs(qMessages);
-
-          let unreadCount = 0;
-          messagesSnap.forEach((messageDoc) => {
-            const messageData = messageDoc.data();
-            if (!messageData.readBy || !messageData.readBy.includes(currentUserId)) {
-              unreadCount += 1;
+        const unreadMap: UnreadCounts = {};
+        await Promise.all(
+          visibleConversations.map(async (conversation) => {
+            const otherUserId = conversation.participants.find(
+              (participantId) => participantId !== currentUserId
+            );
+            if (!otherUserId) {
+              unreadMap[conversation.id] = 0;
+              return;
             }
-          });
-          unreadMap[conversation.id] = unreadCount;
-        })
-      );
 
-      setUnreadCounts(unreadMap);
-    } catch (error) {
-      console.error("Error fetching support conversations:", error);
-      Alert.alert("Error", "Failed to load support conversations.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [currentUserId, userInfoMap]);
+            const messagesRef = collection(db, "conversations", conversation.id, "messages");
+            const qMessages = query(messagesRef, where("senderId", "==", otherUserId));
+            const messagesSnap = await getDocs(qMessages);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [fetchData])
+            let unreadCount = 0;
+            messagesSnap.forEach((messageDoc) => {
+              const messageData = messageDoc.data();
+              if (!messageData.readBy || !messageData.readBy.includes(currentUserId)) {
+                unreadCount += 1;
+              }
+            });
+            unreadMap[conversation.id] = unreadCount;
+          })
+        );
+
+        setUnreadCounts(unreadMap);
+      } catch (error) {
+        console.error("Error loading support conversation metadata:", error);
+        Alert.alert("Error", "Failed to load support conversations.");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [currentUserId]
   );
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!currentUserId) {
+      setConversations([]);
+      setUnreadCounts({});
+      setUserInfoMap({});
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
+    setLoading(true);
+    const q = query(
+      collection(db, "conversations"),
+      where("participants", "array-contains", currentUserId)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const allConversations = snapshot.docs.map((conversationDoc) => ({
+          id: conversationDoc.id,
+          ...conversationDoc.data(),
+        })) as Conversation[];
+
+        const visibleConversations = allConversations
+          .filter((conversation) => !conversation.hiddenFor?.includes(currentUserId))
+          .sort(
+            (a, b) =>
+              (b.updatedAt?.toDate?.()?.getTime?.() || 0) -
+              (a.updatedAt?.toDate?.()?.getTime?.() || 0)
+          );
+
+        setConversations(visibleConversations);
+        void loadConversationMeta(visibleConversations);
+      },
+      (error) => {
+        console.error("Support inbox listener error:", error);
+        setLoading(false);
+        setRefreshing(false);
+        Alert.alert("Error", "Failed to load support conversations.");
+      }
+    );
+
+    return unsubscribe;
+  }, [currentUserId, loadConversationMeta]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchData();
+    void loadConversationMeta(conversations);
   };
 
   const setConversationReadState = async (
@@ -190,8 +207,6 @@ export default function AdminSupportMessages({ navigation }: any) {
       } else {
         await updateDoc(conversationRef, { "lastMessage.readBy": arrayRemove(currentUserId) });
       }
-
-      fetchData();
     } catch (error: any) {
       Alert.alert("Error", error?.message || "Failed to update read state.");
     }

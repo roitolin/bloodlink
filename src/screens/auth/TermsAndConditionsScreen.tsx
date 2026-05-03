@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { View, Text, ScrollView, StyleSheet, Alert } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Alert, Pressable } from "react-native";
 import { BlurView } from "expo-blur";
-import { Button, Checkbox } from "react-native-paper";
+import { Button } from "react-native-paper";
 import { doc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../../services/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
@@ -51,12 +51,12 @@ export default function TermsAndConditionsScreen() {
             <Text style={styles.updated}>Effective Date: April 2, 2026</Text>
 
             <Text style={styles.body}>
-              By using BloodLink, you agree to provide accurate information, communicate
+              By using LifeCycle, you agree to provide accurate information, communicate
               respectfully, and use the platform only for legitimate blood donation and support
               purposes.
             </Text>
             <Text style={styles.body}>
-              BloodLink connects donors and requesters but does not replace professional medical
+              LifeCycle connects donors and requesters but does not replace professional medical
               advice. Users should coordinate with licensed health professionals and accredited
               blood centers.
             </Text>
@@ -65,13 +65,17 @@ export default function TermsAndConditionsScreen() {
               with local medical regulations.
             </Text>
 
-            <View style={styles.acceptRow}>
-              <Checkbox
-                status={accepted ? "checked" : "unchecked"}
-                onPress={() => setAccepted((prev) => !prev)}
-              />
+            <Pressable
+              style={styles.acceptRow}
+              onPress={() => setAccepted((prev) => !prev)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: accepted }}
+            >
+              <View style={[styles.checkboxBox, accepted && styles.checkboxBoxChecked]}>
+                {accepted ? <Text style={styles.checkboxMark}>✓</Text> : null}
+              </View>
               <Text style={styles.acceptText}>I have read and agree to the Terms & Conditions.</Text>
-            </View>
+            </Pressable>
           </ScrollView>
 
           <View style={styles.footer}>
@@ -135,13 +139,36 @@ const styles = StyleSheet.create({
   },
   acceptRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginTop: 8,
+    gap: 12,
+  },
+  checkboxBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: "#b91c1c",
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  checkboxBoxChecked: {
+    backgroundColor: "#b91c1c",
+    borderColor: "#b91c1c",
+  },
+  checkboxMark: {
+    color: "#fff",
+    fontWeight: "900",
+    fontSize: 15,
+    lineHeight: 16,
   },
   acceptText: {
     flex: 1,
     fontSize: 15,
     color: "#333",
+    lineHeight: 22,
   },
   footer: {
     borderTopWidth: 1,

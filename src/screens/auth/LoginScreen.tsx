@@ -21,6 +21,9 @@ import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../../services/firebaseConfig";
 import { useResponsive } from "../../utils/responsive";
+import { useAuth } from "../../context/AuthContext";
+import { clearLoginAttempts, getLoginBlockState, recordFailedLoginAttempt } from "../../utils/authAttemptGuard";
+import { normalizeEmail } from "../../utils/inputSecurity";
 
 export default function LoginScreen({ navigation, route }: any) {
   const [email, setEmail] = useState("");
@@ -30,6 +33,7 @@ export default function LoginScreen({ navigation, route }: any) {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [banDialog, setBanDialog] = useState<{ reason: string; banEndsLabel: string } | null>(null);
+  const { banNotice, clearBanNotice } = useAuth();
   const { isDesktop } = useResponsive();
   const scrollRef = useRef<ScrollView>(null);
   const emailRef = useRef<TextInput>(null);
@@ -52,6 +56,12 @@ export default function LoginScreen({ navigation, route }: any) {
     }
   }, [route?.params?.email]);
 
+  useEffect(() => {
+    if (!banNotice) return;
+    setBanDialog(banNotice);
+    clearBanNotice();
+  }, [banNotice, clearBanNotice]);
+
   const scrollToInput = (inputRef: any) => {
     const inputHandle = findNodeHandle(inputRef.current);
     if (!inputHandle) return;
@@ -62,7 +72,7 @@ export default function LoginScreen({ navigation, route }: any) {
     const code = error?.code || "";
 
     if (code === "auth/invalid-credential" || code === "auth/user-not-found") {
-      return "Email not found. Please register this account first.";
+      return "We couldn't find an account with that email. Please check for typos or sign up first.";
     }
     if (code === "auth/wrong-password") {
       return "Incorrect password. Please try again.";
@@ -88,14 +98,25 @@ export default function LoginScreen({ navigation, route }: any) {
       return;
     }
 
+    const normalizedEmail = normalizeEmail(email);
+    const blockState = await getLoginBlockState(normalizedEmail);
+    if (blockState.blocked) {
+      Alert.alert("Too Many Attempts", `Please wait ${blockState.retryAfterSeconds}s before trying again.`);
+      return;
+    }
+
     setLoading(true);
     try {
-      const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const credential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
       const userDocRef = doc(db, "users", credential.user.uid);
       const userDoc = await getDoc(userDocRef);
-      if (!userDoc.exists()) return;
-
+      if (!userDoc.exists()) {
+        await signOut(auth);
+        Alert.alert("Login Failed", "Profile not found for this account. Please contact support.");
+        return;
+      }
       const userData = userDoc.data() as any;
+
       const disabled = Boolean(userData?.disabled);
       const banReason = String(userData?.banReason || "").trim() || "No reason provided by admin.";
       const bannedUntilRaw = userData?.bannedUntil;
@@ -124,8 +145,13 @@ export default function LoginScreen({ navigation, route }: any) {
           reason: banReason,
           banEndsLabel: hasValidBanEnd ? bannedUntil.toLocaleString() : "No end date (permanent)",
         });
+        await recordFailedLoginAttempt(normalizedEmail);
+        return;
       }
+
+      await clearLoginAttempts(normalizedEmail);
     } catch (error: any) {
+      await recordFailedLoginAttempt(normalizedEmail);
       Alert.alert("Login Failed", getLoginErrorMessage(error));
     } finally {
       setLoading(false);
@@ -135,8 +161,8 @@ export default function LoginScreen({ navigation, route }: any) {
   const openSupportChannel = async (channel: "sms" | "email") => {
     const url =
       channel === "sms"
-        ? `sms:${supportPhone}?body=${encodeURIComponent("I need help logging in to my BloodLink account.")}`
-        : `mailto:${supportEmail}?subject=${encodeURIComponent("BloodLink Login Help")}&body=${encodeURIComponent(
+        ? `sms:${supportPhone}?body=${encodeURIComponent("I need help logging in to my account.")}`
+        : `mailto:${supportEmail}?subject=${encodeURIComponent("Account Login Help")}&body=${encodeURIComponent(
             `I need help logging in.\nEmail: ${email || "(not provided)"}\nIssue: `
           )}`;
 
@@ -218,11 +244,9 @@ export default function LoginScreen({ navigation, route }: any) {
                 },
               ]}
             >
-              <Text style={styles.introKicker}>BloodLink</Text>
+              <Text style={styles.introKicker}>Account Access</Text>
               <Text style={styles.introTitle}>Welcome Back</Text>
-              <Text style={styles.introBody}>
-                Sign in to manage requests, connect with donors, and monitor urgent blood needs in your area.
-              </Text>
+              <Text style={styles.introBody}>Sign in to continue to your LifeCycle account.</Text>
             </Animated.View>
           )}
 
@@ -251,7 +275,7 @@ export default function LoginScreen({ navigation, route }: any) {
           >
             <Image source={require("../../../assets/Logo.png")} style={styles.logo} resizeMode="contain" />
             <Text style={styles.title}>Log In</Text>
-            <Text style={styles.subtitle}>Sign in to continue helping your community.</Text>
+            <Text style={styles.subtitle}>Sign in to your account to continue to LifeCycle.</Text>
 
             <TextInput
               ref={emailRef}
@@ -298,10 +322,7 @@ export default function LoginScreen({ navigation, route }: any) {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              onPress={() => navigation.navigate("ForgotPassword", { email: email.trim() })}
-              style={styles.forgotWrap}
-            >
+            <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword", { email: email.trim() })} style={styles.forgotWrap}>
               <Text style={styles.forgotLink}>Forgot Password?</Text>
             </TouchableOpacity>
 

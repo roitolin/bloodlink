@@ -75,7 +75,7 @@ export default function ForgotPasswordScreen({ navigation, route }: any) {
       await sendPasswordResetEmail(auth, email.trim());
       showDialog({
         title: "Reset Email Sent",
-        message: `We sent a password reset link to ${email.trim()}. Check your inbox and spam folder, then come back once you’ve updated your password.`,
+        message: `We sent a password reset link to ${email.trim()}. Check your inbox and spam folder, then come back once you've updated your password.`,
         tone: "success",
         actions: [
           {
@@ -128,11 +128,9 @@ export default function ForgotPasswordScreen({ navigation, route }: any) {
                 },
               ]}
             >
-              <Text style={styles.introKicker}>BloodLink</Text>
+              <Text style={styles.introKicker}>Account Access</Text>
               <Text style={styles.introTitle}>Reset Your Password</Text>
-              <Text style={styles.introBody}>
-                Enter the email linked to your account and we&apos;ll send you a secure password reset link.
-              </Text>
+              <Text style={styles.introBody}>Reset your password, then sign in again to continue to LifeCycle.</Text>
             </Animated.View>
           )}
 

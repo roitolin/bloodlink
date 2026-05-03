@@ -243,19 +243,31 @@ export default function MyRequestsScreen({ navigation, route }: any) {
 
   return (
     <View style={[styles.container, isDesktop && styles.containerDesktop]}>
-      <View style={styles.pageHeader}>
-        <View>
-          <Text style={styles.pageTitle}>My Requests</Text>
-          <Text style={styles.pageSubtitle}>Track request status from pending to completed.</Text>
+      <View style={styles.backgroundOrbTop} pointerEvents="none" />
+      <View style={styles.backgroundOrbBottom} pointerEvents="none" />
+
+      <View style={styles.heroShell}>
+        <View style={styles.heroGlowPrimary} pointerEvents="none" />
+        <View style={styles.heroGlowSecondary} pointerEvents="none" />
+        <View style={styles.pageHeader}>
+          <Text style={styles.heroEyebrow}>My Requests</Text>
+          <View style={styles.heroTopRow}>
+            <View style={styles.heroTextWrap}>
+              <Text style={styles.pageTitle}>Track every request clearly</Text>
+              <Text style={styles.pageSubtitle}>See which requests are pending, accepted, completed, or slipping past target response time.</Text>
+            </View>
+            <Button
+              mode="contained"
+              icon="plus-circle"
+              style={styles.headerAction}
+              buttonColor="#fff7ed"
+              textColor="#7f1d1d"
+              onPress={() => navigation.navigate("CreateRequest")}
+            >
+              Create Request
+            </Button>
+          </View>
         </View>
-        <Button
-          mode="contained"
-          icon="plus-circle"
-          style={styles.headerAction}
-          onPress={() => navigation.navigate("CreateRequest")}
-        >
-          Create Request
-        </Button>
       </View>
       <View style={styles.metricsRow}>
         <View style={styles.metricCard}>
@@ -307,52 +319,106 @@ export default function MyRequestsScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#f5f5f5" },
+  container: { flex: 1, padding: 20, backgroundColor: "#f6f2ec" },
   containerDesktop: {
     maxWidth: 1020,
     alignSelf: "center",
     width: "100%",
   },
+  backgroundOrbTop: {
+    position: "absolute",
+    top: -70,
+    right: -40,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "rgba(244, 63, 94, 0.08)",
+  },
+  backgroundOrbBottom: {
+    position: "absolute",
+    bottom: 20,
+    left: -70,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(251, 146, 60, 0.08)",
+  },
+  heroShell: {
+    position: "relative",
+    marginBottom: 14,
+  },
+  heroGlowPrimary: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    right: 40,
+    height: 120,
+    borderRadius: 28,
+    backgroundColor: "rgba(190, 24, 93, 0.14)",
+  },
+  heroGlowSecondary: {
+    position: "absolute",
+    top: 34,
+    right: 0,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: "rgba(249, 115, 22, 0.13)",
+  },
   pageHeader: {
-    marginBottom: 12,
-    backgroundColor: "#fff",
+    backgroundColor: "#7f1d1d",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 12,
+    borderColor: "rgba(255,255,255,0.12)",
+    borderRadius: 28,
     padding: 14,
+  },
+  heroEyebrow: {
+    color: "#fecdd3",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    marginBottom: 6,
+  },
+  heroTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 12,
     flexWrap: "wrap",
   },
+  heroTextWrap: {
+    flex: 1,
+  },
   pageTitle: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#b91c1c",
+    fontSize: 30,
+    fontWeight: "900",
+    lineHeight: 34,
+    color: "#fffaf5",
   },
   pageSubtitle: {
-    marginTop: 4,
-    color: "#4b5563",
+    marginTop: 8,
+    color: "#ffe4e6",
     fontSize: 14,
+    lineHeight: 22,
   },
   headerAction: {
-    borderRadius: 10,
+    borderRadius: 14,
   },
   metricsRow: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 10,
+    gap: 10,
+    marginBottom: 12,
     flexWrap: "wrap",
   },
   metricCard: {
     flex: 1,
     minWidth: 120,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    backgroundColor: "#fff",
-    paddingVertical: 10,
+    borderColor: "#eadfd5",
+    borderRadius: 18,
+    backgroundColor: "#fffdf9",
+    paddingVertical: 12,
     paddingHorizontal: 12,
   },
   metricValue: {
@@ -377,9 +443,9 @@ const styles = StyleSheet.create({
   card: {
     padding: 15,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    marginBottom: 10,
+    borderColor: "#eadfd5",
+    borderRadius: 20,
+    marginBottom: 12,
     backgroundColor: "#fff",
     shadowColor: "#111827",
     shadowOpacity: 0.05,
@@ -388,9 +454,9 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   highlightCard: {
-    borderColor: "#f59e0b",
+    borderColor: "#fb923c",
     borderWidth: 2,
-    backgroundColor: "#fffbeb",
+    backgroundColor: "#fff7ed",
   },
   newTag: {
     color: "#b45309",
@@ -454,9 +520,9 @@ const styles = StyleSheet.create({
   emptyCard: {
     marginTop: 26,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 12,
-    backgroundColor: "#fff",
+    borderColor: "#eadfd5",
+    borderRadius: 24,
+    backgroundColor: "#fffdf9",
     padding: 18,
     alignItems: "center",
   },

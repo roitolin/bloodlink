@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, StyleSheet, View } from "react-native";
 import { Button, Card, IconButton, Searchbar, SegmentedButtons, Text, TextInput } from "react-native-paper";
+import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
 import { collection, deleteDoc, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where, writeBatch } from "firebase/firestore";
 import { auth, db } from "../../services/firebaseConfig";
@@ -34,6 +35,7 @@ type Request = {
 type StatusFilter = "all" | "pending" | "accepted" | "completed";
 type UrgencyFilter = "all" | "Critical" | "Urgent" | "Normal";
 type EmergencyUrgency = "Critical" | "Urgent" | "Normal";
+const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
 type BroadcastRecord = {
   id: string;
@@ -81,7 +83,7 @@ export default function AdminAllRequestsScreen() {
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastUrgency, setBroadcastUrgency] = useState<EmergencyUrgency>("Critical");
   const [broadcastCity, setBroadcastCity] = useState("");
-  const [broadcastBloodType, setBroadcastBloodType] = useState("");
+  const [broadcastBloodType, setBroadcastBloodType] = useState(BLOOD_TYPES[0]);
   const [broadcastHours, setBroadcastHours] = useState("6");
   const [postingBroadcast, setPostingBroadcast] = useState(false);
 
@@ -327,6 +329,10 @@ export default function AdminAllRequestsScreen() {
       Alert.alert("Missing Message", "Please enter an emergency broadcast message.");
       return;
     }
+    if (!broadcastBloodType.trim()) {
+      Alert.alert("Missing Blood Type", "Please select a blood type for this emergency broadcast.");
+      return;
+    }
 
     setPostingBroadcast(true);
     try {
@@ -356,7 +362,7 @@ export default function AdminAllRequestsScreen() {
 
       setBroadcastMessage("");
       setBroadcastCity("");
-      setBroadcastBloodType("");
+      setBroadcastBloodType(BLOOD_TYPES[0]);
       setBroadcastHours("6");
       Alert.alert("Broadcast Published", `Emergency broadcast sent to ${recipientCount} user(s).`);
     } catch (error: any) {
@@ -605,13 +611,14 @@ export default function AdminAllRequestsScreen() {
             onChangeText={setBroadcastCity}
             style={styles.input}
           />
-          <TextInput
-            mode="outlined"
-            label="Target blood type (optional)"
-            value={broadcastBloodType}
-            onChangeText={setBroadcastBloodType}
-            style={styles.input}
-          />
+          <Text style={styles.inputLabel}>Target blood type</Text>
+          <View style={styles.pickerWrap}>
+            <Picker selectedValue={broadcastBloodType} onValueChange={(value) => setBroadcastBloodType(String(value))}>
+              {BLOOD_TYPES.map((type) => (
+                <Picker.Item key={type} label={type} value={type} />
+              ))}
+            </Picker>
+          </View>
           <TextInput
             mode="outlined"
             label="Expires in hours (1-72)"
@@ -620,7 +627,12 @@ export default function AdminAllRequestsScreen() {
             onChangeText={setBroadcastHours}
             style={styles.input}
           />
-          <Button mode="contained" loading={postingBroadcast} disabled={postingBroadcast} onPress={publishEmergencyBroadcast}>
+          <Button
+            mode="contained"
+            loading={postingBroadcast}
+            disabled={postingBroadcast || !broadcastMessage.trim() || !broadcastBloodType.trim()}
+            onPress={publishEmergencyBroadcast}
+          >
             Publish Emergency Broadcast
           </Button>
 
@@ -772,6 +784,20 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 10,
     backgroundColor: "#fff",
+  },
+  inputLabel: {
+    marginBottom: 6,
+    marginTop: 2,
+    color: "#374151",
+    fontWeight: "700",
+  },
+  pickerWrap: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    marginBottom: 10,
+    overflow: "hidden",
   },
   broadcastList: {
     marginTop: 12,

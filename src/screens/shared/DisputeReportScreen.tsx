@@ -6,7 +6,10 @@ import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "../../context/AuthContext";
 import { useResponsive } from "../../utils/responsive";
 import { uploadReportEvidence } from "../../services/cloudinary";
+import { db } from "../../services/firebaseConfig";
 import { reportUserAbuse } from "../../utils/userModeration";
+import { consumeRateLimit, isRateLimitError } from "../../utils/rateLimiter";
+import { hasSuspiciousPayload, sanitizePlainText } from "../../utils/inputSecurity";
 
 const REASONS = ["Spam", "Harassment", "Fake Information", "No-show", "Scam Attempt", "Other"];
 
@@ -32,7 +35,7 @@ export default function ReportCenterScreen({ route, navigation }: any) {
 
   const pickEvidence = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       quality: 0.75,
       allowsEditing: false,
     });
@@ -46,13 +49,23 @@ export default function ReportCenterScreen({ route, navigation }: any) {
       Alert.alert("Error", "You must be logged in.");
       return;
     }
-    if (!targetUserId.trim()) {
+    const safeTargetUserId = sanitizePlainText(targetUserId, 64);
+    const safeReason = sanitizePlainText(reason, 80);
+    const safeDetails = sanitizePlainText(details, 1500);
+
+    if (!safeTargetUserId) {
       Alert.alert("Required", "Target user ID is required.");
+      return;
+    }
+    if (hasSuspiciousPayload(safeReason) || hasSuspiciousPayload(safeDetails)) {
+      Alert.alert("Blocked", "Report contains unsafe text patterns. Please revise and try again.");
       return;
     }
 
     setSubmitting(true);
     try {
+      await consumeRateLimit(db, user.uid, "abuse_report", safeTargetUserId);
+
       let evidenceURL: string | null = null;
       if (evidenceUri) {
         setUploadingEvidence(true);
@@ -63,9 +76,9 @@ export default function ReportCenterScreen({ route, navigation }: any) {
       await reportUserAbuse({
         reporterId: user.uid,
         reporterName: user.displayName || user.email || null,
-        targetUserId: targetUserId.trim(),
-        reason,
-        details: details.trim() || undefined,
+        targetUserId: safeTargetUserId,
+        reason: safeReason,
+        details: safeDetails || undefined,
         evidenceURL,
         source: reportSource,
         requestId: prefilledRequestId || undefined,
@@ -79,6 +92,10 @@ export default function ReportCenterScreen({ route, navigation }: any) {
         },
       ]);
     } catch (error: any) {
+      if (isRateLimitError(error)) {
+        Alert.alert("Slow down", `Please wait ${error.retryAfterSeconds}s before submitting another report.`);
+        return;
+      }
       Alert.alert("Error", error?.message || "Failed to submit report.");
     } finally {
       setSubmitting(false);
