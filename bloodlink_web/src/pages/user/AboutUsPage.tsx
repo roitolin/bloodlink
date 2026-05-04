@@ -9,7 +9,6 @@ type AboutSection = {
 type Member = {
   name: string
   role: string
-  photoURL: string
   quote: string
 }
 
@@ -48,44 +47,38 @@ const sections: AboutSection[] = [
 
 const systemMembers: Member[] = [
   {
-    name: 'Roi Veinze A. Tolin',
+    name: 'Member 1',
     role: 'Team Member',
-    photoURL: '/member-photos/roi-veinze-tolin.png',
     quote:
       'Your blood is a small gift with a monumental impact. Together, we can build a stronger, healthier world through compassion. Donate today.',
   },
   {
-    name: 'Mary Sheen Punay',
+    name: 'Member 2',
     role: 'Team Member',
-    photoURL: '/member-photos/mary-sheen-punay.png',
     quote:
       'Every donor gives more than blood. They give hope, time, and another chance for someone to keep living.',
   },
   {
-    name: 'Daisy Derial',
+    name: 'Member 3',
     role: 'Team Member',
-    photoURL: '/member-photos/daisy-derial.jpg',
     quote:
       'Compassion becomes powerful when it moves quickly. LifeCycle helps communities respond when every minute matters.',
   },
   {
-    name: 'Ezra Baguhin',
+    name: 'Member 4',
     role: 'Team Member',
-    photoURL: '/member-photos/ezra-baguhin.png',
     quote:
       'One simple act of donation can connect strangers, strengthen families, and save lives in the moments that count most.',
   },
   {
-    name: 'Samuel Monares',
+    name: 'Member 5',
     role: 'Team Member',
-    photoURL: '/member-photos/samuel-monares-jr.png',
     quote:
       'When people come together for a shared purpose, urgent blood needs turn into stories of survival and community.',
   },
   {
-    name: 'Cyrus Dan Coyoca',
+    name: 'Member 6',
     role: 'Team Member',
-    photoURL: '/member-photos/cyrus-coyoca.jpg',
     quote:
       'Technology should serve humanity. LifeCycle is built to make help visible, reachable, and immediate for those in need.',
   },
@@ -147,7 +140,9 @@ function AboutUsPage() {
                 className="member-tile member-tile-btn"
                 onClick={() => setActiveMember(member)}
               >
-                <img src={member.photoURL} alt={member.name} className="member-photo" />
+                <span className="member-photo member-photo-icon" aria-label={`${member.name} profile icon`}>
+                  &#128100;
+                </span>
                 <strong>{member.name}</strong>
                 <span className="member-role">{member.role}</span>
               </button>
@@ -175,11 +170,12 @@ function AboutUsPage() {
               </header>
               <div className="about-member-banner-body">
                 <div className="about-member-banner-photo-wrap">
-                  <img
-                    src={activeMember.photoURL}
-                    alt={activeMember.name}
-                    className="about-member-fallback-photo about-member-banner-photo"
-                  />
+                  <div
+                    className="about-member-fallback-photo about-member-banner-photo about-member-banner-photo-icon"
+                    aria-label={`${activeMember.name} profile icon`}
+                  >
+                    &#128100;
+                  </div>
                 </div>
                 <blockquote className="about-member-banner-quote">&quot;{activeMember.quote}&quot;</blockquote>
               </div>

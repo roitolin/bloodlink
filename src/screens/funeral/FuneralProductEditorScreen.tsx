@@ -255,7 +255,7 @@ export default function FuneralProductEditorScreen({ navigation, route }: any) {
     return (
       <SafeAreaView style={styles.screen}>
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color="#171717" />
+          <ActivityIndicator size="large" color="#22312d" />
           <Text style={styles.loadingText}>Loading product form...</Text>
         </View>
       </SafeAreaView>
@@ -267,7 +267,7 @@ export default function FuneralProductEditorScreen({ navigation, route }: any) {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroCard}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={20} color="#171717" />
+            <Ionicons name="chevron-back" size={20} color="#22312d" />
           </TouchableOpacity>
 
           <Text style={styles.heroEyebrow}>Product Form</Text>
@@ -295,7 +295,7 @@ export default function FuneralProductEditorScreen({ navigation, route }: any) {
                     <Image source={{ uri: imageUrl }} style={styles.photoPreview} resizeMode="cover" />
                   ) : (
                     <View style={styles.photoPlaceholder}>
-                      {isUploading ? <ActivityIndicator size="small" color="#171717" /> : <Ionicons name="image-outline" size={26} color="#78716c" />}
+                      {isUploading ? <ActivityIndicator size="small" color="#22312d" /> : <Ionicons name="image-outline" size={26} color="#86908a" />}
                     </View>
                   )}
 
@@ -403,7 +403,7 @@ export default function FuneralProductEditorScreen({ navigation, route }: any) {
                       <Image source={{ uri: variation.imageUrl }} style={styles.variationImage} resizeMode="cover" />
                     ) : (
                       <View style={styles.variationImagePlaceholder}>
-                        {isUploading ? <ActivityIndicator size="small" color="#171717" /> : <Ionicons name="image-outline" size={24} color="#78716c" />}
+                        {isUploading ? <ActivityIndicator size="small" color="#22312d" /> : <Ionicons name="image-outline" size={24} color="#86908a" />}
                       </View>
                     )}
 
@@ -444,7 +444,7 @@ export default function FuneralProductEditorScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f8f7f3",
+    backgroundColor: "#eef1ec",
   },
   loadingWrap: {
     flex: 1,
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 14,
     fontWeight: "700",
   },
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     borderRadius: 28,
-    backgroundColor: "#facc15",
+    backgroundColor: "#d6e2d2",
     padding: 20,
   },
   backButton: {
@@ -479,37 +479,37 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   heroEyebrow: {
-    color: "#92400e",
+    color: "#86654a",
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.4,
   },
   heroTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 30,
     fontWeight: "900",
     marginTop: 6,
   },
   heroSubtitle: {
-    color: "#44403c",
+    color: "#53615d",
     fontSize: 14,
     lineHeight: 21,
     marginTop: 8,
   },
   card: {
     borderRadius: 24,
-    backgroundColor: "#fffaf5",
+    backgroundColor: "#f8f6f2",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     padding: 16,
   },
   sectionTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 20,
     fontWeight: "900",
   },
   sectionSubtitle: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
     marginTop: 4,
@@ -524,19 +524,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     padding: 12,
   },
   photoBadge: {
     alignSelf: "flex-start",
     borderRadius: 999,
-    backgroundColor: "#fff4bf",
+    backgroundColor: "#e4ece0",
     paddingHorizontal: 10,
     paddingVertical: 5,
     marginBottom: 10,
   },
   photoBadgeText: {
-    color: "#92400e",
+    color: "#86654a",
     fontSize: 11,
     fontWeight: "900",
   },
@@ -549,46 +549,46 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 154,
     borderRadius: 16,
-    backgroundColor: "#fff8d8",
+    backgroundColor: "#ebf1e8",
     alignItems: "center",
     justifyContent: "center",
   },
   photoButton: {
     minHeight: 42,
     borderRadius: 14,
-    backgroundColor: "#facc15",
+    backgroundColor: "#d6e2d2",
     borderWidth: 1,
-    borderColor: "#eab308",
+    borderColor: "#c3d0bf",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 12,
   },
   photoButtonText: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 13,
     fontWeight: "900",
   },
   photoGhostButton: {
     minHeight: 40,
     borderRadius: 14,
-    backgroundColor: "#f5f5f4",
+    backgroundColor: "#ece9e3",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 8,
   },
   photoGhostButtonText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     fontWeight: "800",
   },
   photoCounter: {
-    color: "#78716c",
+    color: "#86908a",
     fontSize: 12,
     fontWeight: "800",
     marginTop: 12,
   },
   inputLabel: {
-    color: "#44403c",
+    color: "#53615d",
     fontSize: 12,
     fontWeight: "900",
     marginBottom: 6,
@@ -596,25 +596,25 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     borderRadius: 16,
-    backgroundColor: "#fffdf9",
+    backgroundColor: "#fbfaf7",
     paddingHorizontal: 12,
     paddingVertical: 12,
-    color: "#171717",
+    color: "#22312d",
   },
   staticField: {
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     borderRadius: 16,
-    backgroundColor: "#fff8d8",
+    backgroundColor: "#ebf1e8",
     paddingHorizontal: 12,
     paddingVertical: 12,
     minHeight: 48,
     justifyContent: "center",
   },
   staticFieldText: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 14,
     fontWeight: "800",
   },
@@ -640,16 +640,16 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     alignItems: "center",
     justifyContent: "center",
   },
   toggleButtonActive: {
-    backgroundColor: "#171717",
-    borderColor: "#171717",
+    backgroundColor: "#22312d",
+    borderColor: "#22312d",
   },
   toggleButtonText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     fontWeight: "900",
   },
@@ -661,12 +661,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   variationHeading: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 16,
     fontWeight: "900",
   },
   variationSubheading: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
   },
@@ -682,29 +682,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
   },
   variationCountButtonActive: {
-    backgroundColor: "#facc15",
-    borderColor: "#eab308",
+    backgroundColor: "#d6e2d2",
+    borderColor: "#c3d0bf",
   },
   variationCountButtonText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     fontWeight: "900",
   },
   variationCountButtonTextActive: {
-    color: "#171717",
+    color: "#22312d",
   },
   variationCard: {
     borderRadius: 20,
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     padding: 14,
   },
   variationCardTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 15,
     fontWeight: "900",
   },
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 170,
     borderRadius: 16,
-    backgroundColor: "#fff8d8",
+    backgroundColor: "#ebf1e8",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 12,
@@ -729,7 +729,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     minHeight: 50,
     borderRadius: 16,
-    backgroundColor: "#171717",
+    backgroundColor: "#22312d",
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
@@ -743,12 +743,12 @@ const styles = StyleSheet.create({
   ghostButton: {
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: "#f5f5f4",
+    backgroundColor: "#ece9e3",
     alignItems: "center",
     justifyContent: "center",
   },
   ghostButtonText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 14,
     fontWeight: "800",
   },

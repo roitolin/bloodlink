@@ -179,7 +179,7 @@ export default function FuneralProfileScreen({ navigation }: any) {
     shopStatus === "verified"
       ? "#15803d"
       : shopStatus === "pending"
-      ? "#b45309"
+      ? "#9a7c5d"
       : shopStatus === "rejected"
       ? "#b91c1c"
       : "#6b7280";
@@ -213,7 +213,7 @@ export default function FuneralProfileScreen({ navigation }: any) {
           <View style={styles.photoSection}>
             <TouchableOpacity onPress={() => setPreviewVisible(true)} style={styles.photoContainer}>
               {uploading ? (
-                <ActivityIndicator size="large" color="#334155" />
+                <ActivityIndicator size="large" color="#5a6b64" />
               ) : photoURL ? (
                 <Image source={{ uri: photoURL }} style={styles.photo} resizeMode="cover" />
               ) : (
@@ -261,7 +261,7 @@ export default function FuneralProfileScreen({ navigation }: any) {
             <Text style={styles.ageText}>{age !== null ? `${age} years old` : "Not available"}</Text>
           </View>
 
-          <PaperButton mode="contained" buttonColor="#334155" onPress={saveBasicProfile} loading={savingProfile} disabled={savingProfile}>
+          <PaperButton mode="contained" buttonColor="#5a6b64" onPress={saveBasicProfile} loading={savingProfile} disabled={savingProfile}>
             Save Profile Details
           </PaperButton>
         </Card.Content>
@@ -271,7 +271,7 @@ export default function FuneralProfileScreen({ navigation }: any) {
         <Card.Content>
           <View style={styles.statusRow}>
             <Text style={styles.sectionTitle}>Shop Status</Text>
-            <Chip textStyle={{ color: shopStatusColor }} style={{ backgroundColor: "#f3f4f6" }}>
+            <Chip textStyle={{ color: shopStatusColor }} style={{ backgroundColor: "#eef1ec" }}>
               {shopStatus.toUpperCase()}
             </Chip>
           </View>
@@ -292,7 +292,7 @@ export default function FuneralProfileScreen({ navigation }: any) {
 
           {shopStatus === "pending" ? (
             <View style={styles.infoBanner}>
-              <Ionicons name="hourglass-outline" size={20} color="#b45309" />
+              <Ionicons name="hourglass-outline" size={20} color="#9a7c5d" />
               <Text style={styles.infoBannerText}>
                 Your shop registration is under review. Open the shop center to review the details you submitted.
               </Text>
@@ -317,7 +317,7 @@ export default function FuneralProfileScreen({ navigation }: any) {
             </Text>
           ) : null}
 
-          <PaperButton mode="contained" buttonColor="#334155" onPress={handlePrimaryAction} style={styles.primaryButton}>
+          <PaperButton mode="contained" buttonColor="#5a6b64" onPress={handlePrimaryAction} style={styles.primaryButton}>
             {shopActionLabel}
           </PaperButton>
           <PaperButton mode="outlined" onPress={() => navigation.navigate("MyServiceRequests")} style={styles.utilityButton}>
@@ -340,7 +340,7 @@ export default function FuneralProfileScreen({ navigation }: any) {
           <PaperButton mode="outlined" onPress={() => navigation.navigate("DonationHistory")} style={styles.utilityButton}>
             Donation History & Certificates
           </PaperButton>
-          <PaperButton mode="contained" buttonColor="#334155" onPress={() => navigation.getParent?.()?.getParent?.()?.navigate("ServiceHub")}>
+          <PaperButton mode="contained" buttonColor="#5a6b64" onPress={() => navigation.getParent?.()?.getParent?.()?.navigate("ServiceHub")}>
             Exit
           </PaperButton>
         </Card.Content>
@@ -373,7 +373,7 @@ export default function FuneralProfileScreen({ navigation }: any) {
               </Text>
               <PaperButton
                 mode="contained"
-                buttonColor="#334155"
+                buttonColor="#5a6b64"
                 onPress={() => {
                   setStartRegistrationVisible(false);
                   navigation.navigate("ShopInformation");
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     paddingBottom: 36,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#eef1ec",
     gap: 10,
   },
   containerDesktop: {
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: 26,
     fontWeight: "800",
-    color: "#334155",
+    color: "#5a6b64",
   },
   pageSubtitle: {
     marginTop: 3,
@@ -421,15 +421,15 @@ const styles = StyleSheet.create({
   uidPill: {
     marginTop: 8,
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: "#cad5cc",
     borderRadius: 999,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fbfcf8",
     alignSelf: "flex-start",
     paddingVertical: 6,
     paddingHorizontal: 10,
   },
   uidPillLabel: {
-    color: "#475569",
+    color: "#66746f",
     fontSize: 11,
     fontWeight: "700",
   },
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
     borderWidth: 2,
-    borderColor: "#334155",
+    borderColor: "#5a6b64",
   },
   photo: {
     width: "100%",
@@ -471,11 +471,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 12,
     marginBottom: 5,
-    color: "#374151",
+    color: "#4c5b57",
   },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: "#cbd2cb",
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
@@ -483,14 +483,14 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: "#cbd2cb",
     borderRadius: 8,
     overflow: "hidden",
     backgroundColor: "#fff",
   },
   dateButton: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: "#cbd2cb",
     borderRadius: 8,
     padding: 12,
     alignItems: "center",
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
   },
   ageDisplay: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#d8ddd7",
     borderRadius: 8,
     padding: 12,
     backgroundColor: "#f9fafb",
@@ -506,12 +506,12 @@ const styles = StyleSheet.create({
   },
   ageText: {
     fontSize: 15,
-    color: "#374151",
+    color: "#4c5b57",
   },
   sectionTitle: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#334155",
+    color: "#5a6b64",
   },
   statusRow: {
     flexDirection: "row",
@@ -536,13 +536,13 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#d8ddd7",
     backgroundColor: "#fafafa",
     marginBottom: 10,
   },
   infoBannerText: {
     flex: 1,
-    color: "#374151",
+    color: "#4c5b57",
     fontSize: 14,
   },
   reason: {
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   startRegistrationText: {
-    color: "#475569",
+    color: "#66746f",
     fontSize: 14,
     lineHeight: 21,
     textAlign: "center",

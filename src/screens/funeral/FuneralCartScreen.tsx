@@ -92,7 +92,7 @@ export default function FuneralCartScreen({ navigation }: any) {
       >
         {items.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Ionicons name="cart-outline" size={30} color="#78716c" />
+            <Ionicons name="cart-outline" size={30} color="#86908a" />
             <Text style={styles.emptyTitle}>Your cart is empty</Text>
             <Text style={styles.emptyText}>Products you add from funeral shops will appear here.</Text>
           </View>
@@ -109,7 +109,7 @@ export default function FuneralCartScreen({ navigation }: any) {
                   <Image source={{ uri: item.imageUrl }} style={styles.itemImage} resizeMode="cover" />
                 ) : (
                   <View style={styles.itemFallback}>
-                    <Ionicons name="cube-outline" size={24} color="#475569" />
+                    <Ionicons name="cube-outline" size={24} color="#66746f" />
                   </View>
                 )}
 
@@ -137,7 +137,7 @@ export default function FuneralCartScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f8f7f3",
+    backgroundColor: "#eef1ec",
   },
   content: {
     padding: 18,
@@ -151,19 +151,19 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   navHeaderTitle: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     fontWeight: "700",
   },
   navHeaderValue: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 20,
     fontWeight: "900",
   },
   navHeaderCheckoutButton: {
     minHeight: 44,
     borderRadius: 14,
-    backgroundColor: "#171717",
+    backgroundColor: "#22312d",
     paddingHorizontal: 14,
     marginRight: 6,
     flexDirection: "row",
@@ -178,21 +178,21 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     borderRadius: 24,
-    backgroundColor: "#fffaf5",
+    backgroundColor: "#f8f6f2",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     alignItems: "center",
     paddingHorizontal: 18,
     paddingVertical: 28,
   },
   emptyTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 18,
     fontWeight: "900",
     marginTop: 12,
   },
   emptyText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     padding: 12,
   },
   itemCardActive: {
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     width: 94,
     height: 94,
     borderRadius: 16,
-    backgroundColor: "#fff8d8",
+    backgroundColor: "#ebf1e8",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -228,23 +228,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemName: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 15,
     fontWeight: "900",
   },
   itemShop: {
-    color: "#a16207",
+    color: "#8b7255",
     fontSize: 12,
     fontWeight: "800",
     marginTop: 4,
   },
   itemVariation: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 12,
     marginTop: 4,
   },
   itemPrice: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 18,
     fontWeight: "900",
     marginTop: 8,

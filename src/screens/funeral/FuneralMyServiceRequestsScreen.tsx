@@ -1,19 +1,21 @@
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Linking,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDocs, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { auth, db } from "@/services";
 
 type FuneralServiceRequest = {
@@ -38,9 +40,22 @@ type FuneralServiceRequest = {
   contactNumber: string;
   status: string;
   createdAt?: any;
+  updatedAt?: any;
   acceptedAt?: any;
   declinedAt?: any;
+  cancelledAt?: any;
 };
+
+type RequestEditForm = {
+  deceasedFullName: string;
+  tributeMessage: string;
+  familyCoordinatorName: string;
+  wakeAddress: string;
+  pickupAddress: string;
+  contactNumber: string;
+};
+
+const isPendingRequest = (status: string) => String(status || "").toLowerCase() === "pending_shop_acceptance";
 
 const getStatusMeta = (status: string) => {
   const normalized = String(status || "").toLowerCase();
@@ -60,10 +75,18 @@ const getStatusMeta = (status: string) => {
       message: "This request was declined by the shop.",
     };
   }
+  if (normalized === "cancelled_by_requester") {
+    return {
+      label: "Cancelled",
+      background: "#eef1ec",
+      text: "#4c5b57",
+      message: "You cancelled this request before the shop accepted it.",
+    };
+  }
   return {
     label: "Waiting for Shop",
     background: "#fef3c7",
-    text: "#92400e",
+    text: "#86654a",
     message: "Your request has been sent. Please wait while the shop reviews it.",
   };
 };
@@ -74,10 +97,30 @@ const formatTimestamp = (value: any) => {
   return date.toLocaleString();
 };
 
-export default function FuneralMyServiceRequestsScreen() {
+const buildEditForm = (request: FuneralServiceRequest): RequestEditForm => ({
+  deceasedFullName: String(request.deceasedFullName || ""),
+  tributeMessage: String(request.tributeMessage || ""),
+  familyCoordinatorName: String(request.familyCoordinatorName || ""),
+  wakeAddress: String(request.wakeAddress || ""),
+  pickupAddress: String(request.pickupAddress || ""),
+  contactNumber: String(request.contactNumber || ""),
+});
+
+export default function FuneralMyServiceRequestsScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<FuneralServiceRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<FuneralServiceRequest | null>(null);
+  const [editingRequest, setEditingRequest] = useState<FuneralServiceRequest | null>(null);
+  const [editForm, setEditForm] = useState<RequestEditForm>({
+    deceasedFullName: "",
+    tributeMessage: "",
+    familyCoordinatorName: "",
+    wakeAddress: "",
+    pickupAddress: "",
+    contactNumber: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [cancellingRequestId, setCancellingRequestId] = useState<string | null>(null);
 
   const openPhoneLink = useCallback(async (mode: "call" | "sms", rawPhone: string | null | undefined) => {
     const phone = String(rawPhone || "").trim();
@@ -105,6 +148,7 @@ export default function FuneralMyServiceRequestsScreen() {
           return bTime - aTime;
         });
       setRequests(nextRequests);
+      setSelectedRequest((current) => nextRequests.find((item) => item.id === current?.id) || null);
     } finally {
       setLoading(false);
     }
@@ -116,23 +160,145 @@ export default function FuneralMyServiceRequestsScreen() {
     }, [loadRequests])
   );
 
+  const openEditRequest = useCallback((request: FuneralServiceRequest) => {
+    setEditingRequest(request);
+    setEditForm(buildEditForm(request));
+  }, []);
+
+  const closeEditRequest = useCallback(() => {
+    if (savingEdit) return;
+    setEditingRequest(null);
+  }, [savingEdit]);
+
+  const saveRequestEdits = useCallback(async () => {
+    if (!editingRequest) return;
+
+    const safeDeceasedFullName = editForm.deceasedFullName.trim();
+    const safeTributeMessage = editForm.tributeMessage.trim();
+    const safeFamilyCoordinatorName = editForm.familyCoordinatorName.trim();
+    const safeWakeAddress = editForm.wakeAddress.trim();
+    const safePickupAddress = editForm.pickupAddress.trim();
+    const safeContactNumber = editForm.contactNumber.trim();
+
+    if (
+      !safeDeceasedFullName ||
+      !safeTributeMessage ||
+      !safeFamilyCoordinatorName ||
+      !safeWakeAddress ||
+      !safePickupAddress ||
+      !safeContactNumber
+    ) {
+      Alert.alert("Incomplete", "Please complete all required request fields before saving.");
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      await updateDoc(doc(db, "funeral_service_requests", editingRequest.id), {
+        deceasedFullName: safeDeceasedFullName,
+        tributeMessage: safeTributeMessage,
+        familyCoordinatorName: safeFamilyCoordinatorName,
+        wakeAddress: safeWakeAddress,
+        pickupAddress: safePickupAddress,
+        contactNumber: safeContactNumber,
+        updatedAt: serverTimestamp(),
+      });
+
+      await loadRequests();
+      setSelectedRequest((current) =>
+        current?.id === editingRequest.id
+          ? {
+              ...current,
+              deceasedFullName: safeDeceasedFullName,
+              tributeMessage: safeTributeMessage,
+              familyCoordinatorName: safeFamilyCoordinatorName,
+              wakeAddress: safeWakeAddress,
+              pickupAddress: safePickupAddress,
+              contactNumber: safeContactNumber,
+            }
+          : current
+      );
+      setEditingRequest(null);
+      Alert.alert("Saved", "Your request details were updated.");
+    } catch (error: any) {
+      Alert.alert("Error", error?.message || "Failed to update your request.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }, [editForm, editingRequest, loadRequests]);
+
+  const cancelRequest = useCallback(
+    async (request: FuneralServiceRequest) => {
+      if (!isPendingRequest(request.status)) {
+        Alert.alert("Unavailable", "Only requests that are still waiting for shop acceptance can be cancelled.");
+        return;
+      }
+
+      Alert.alert("Cancel Request", "Cancel this request before the shop accepts it?", [
+        { text: "Keep Request", style: "cancel" },
+        {
+          text: "Cancel Request",
+          style: "destructive",
+          onPress: async () => {
+            setCancellingRequestId(request.id);
+            try {
+              await updateDoc(doc(db, "funeral_service_requests", request.id), {
+                status: "cancelled_by_requester",
+                cancelledAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+              });
+              await loadRequests();
+              setSelectedRequest((current) =>
+                current?.id === request.id
+                  ? {
+                      ...current,
+                      status: "cancelled_by_requester",
+                    }
+                  : current
+              );
+              Alert.alert("Cancelled", "Your request has been cancelled.");
+            } catch (error: any) {
+              Alert.alert("Error", error?.message || "Failed to cancel your request.");
+            } finally {
+              setCancellingRequestId(null);
+            }
+          },
+        },
+      ]);
+    },
+    [loadRequests]
+  );
+
+  const handleBackToProfile = useCallback(() => {
+    if (navigation?.canGoBack?.()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation?.navigate?.("ProfileMain");
+  }, [navigation]);
+
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerCard}>
+          <TouchableOpacity style={styles.backButton} activeOpacity={0.88} onPress={handleBackToProfile}>
+            <Ionicons name="arrow-back" size={18} color="#22312d" />
+            <Text style={styles.backButtonText}>Back to Profile</Text>
+          </TouchableOpacity>
           <Text style={styles.headerEyebrow}>My Service Requests</Text>
           <Text style={styles.headerTitle}>Request Tracker</Text>
-          <Text style={styles.headerSubtitle}>Monitor your submitted arrangements and wait for the shop’s response here.</Text>
+          <Text style={styles.headerSubtitle}>Monitor your submitted arrangements and wait for the shop&apos;s response here.</Text>
         </View>
 
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color="#92400e" />
+            <ActivityIndicator size="large" color="#86654a" />
             <Text style={styles.loadingText}>Loading your requests...</Text>
           </View>
         ) : requests.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Ionicons name="document-text-outline" size={28} color="#8b8578" />
+            <Ionicons name="document-text-outline" size={28} color="#8b938c" />
             <Text style={styles.emptyTitle}>No service requests yet</Text>
             <Text style={styles.emptyText}>Once you send a funeral service request, it will appear here for tracking.</Text>
           </View>
@@ -220,7 +386,7 @@ export default function FuneralMyServiceRequestsScreen() {
                     onPress={() => void openPhoneLink("call", selectedRequest.shopContactNumber)}
                     disabled={!selectedRequest.shopContactNumber}
                   >
-                    <Ionicons name="call-outline" size={16} color="#171717" />
+                    <Ionicons name="call-outline" size={16} color="#22312d" />
                     <Text style={styles.contactActionButtonText}>Call Shop</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -228,7 +394,7 @@ export default function FuneralMyServiceRequestsScreen() {
                     onPress={() => void openPhoneLink("sms", selectedRequest.shopContactNumber)}
                     disabled={!selectedRequest.shopContactNumber}
                   >
-                    <Ionicons name="chatbubble-ellipses-outline" size={16} color="#171717" />
+                    <Ionicons name="chatbubble-ellipses-outline" size={16} color="#22312d" />
                     <Text style={styles.contactActionButtonText}>SMS Shop</Text>
                   </TouchableOpacity>
                 </View>
@@ -250,6 +416,31 @@ export default function FuneralMyServiceRequestsScreen() {
                   </>
                 ) : null}
 
+                {selectedRequest.cancelledAt ? (
+                  <>
+                    <Text style={styles.detailLabel}>Cancelled</Text>
+                    <Text style={styles.detailValue}>{formatTimestamp(selectedRequest.cancelledAt)}</Text>
+                  </>
+                ) : null}
+
+                {isPendingRequest(selectedRequest.status) ? (
+                  <View style={styles.actionStack}>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={() => openEditRequest(selectedRequest)}
+                    >
+                      <Text style={styles.editButtonText}>Edit Request</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.cancelButton, cancellingRequestId === selectedRequest.id ? styles.buttonDisabled : null]}
+                      onPress={() => void cancelRequest(selectedRequest)}
+                      disabled={cancellingRequestId === selectedRequest.id}
+                    >
+                      <Text style={styles.cancelButtonText}>{cancellingRequestId === selectedRequest.id ? "Cancelling..." : "Cancel Request"}</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+
                 <View style={styles.statusInfoCard}>
                   <Text style={styles.statusInfoTitle}>Current Update</Text>
                   <Text style={styles.statusInfoText}>{getStatusMeta(selectedRequest.status).message}</Text>
@@ -263,6 +454,66 @@ export default function FuneralMyServiceRequestsScreen() {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      <Modal visible={Boolean(editingRequest)} transparent animationType="fade" onRequestClose={closeEditRequest}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeEditRequest}>
+          <TouchableOpacity activeOpacity={1} style={styles.modalCard}>
+            {editingRequest ? (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.modalTitle}>Edit Request</Text>
+                <Text style={styles.modalCaption}>You can update this request while the shop has not accepted it yet.</Text>
+
+                <Text style={styles.inputLabel}>Deceased Full Name</Text>
+                <TextInput style={styles.input} value={editForm.deceasedFullName} onChangeText={(value) => setEditForm((current) => ({ ...current, deceasedFullName: value }))} />
+
+                <Text style={styles.inputLabel}>Family Coordinator</Text>
+                <TextInput style={styles.input} value={editForm.familyCoordinatorName} onChangeText={(value) => setEditForm((current) => ({ ...current, familyCoordinatorName: value }))} />
+
+                <Text style={styles.inputLabel}>Contact Number</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editForm.contactNumber}
+                  onChangeText={(value) => setEditForm((current) => ({ ...current, contactNumber: value }))}
+                  keyboardType="phone-pad"
+                />
+
+                <Text style={styles.inputLabel}>Wake Venue</Text>
+                <TextInput
+                  style={[styles.input, styles.multilineInput]}
+                  value={editForm.wakeAddress}
+                  onChangeText={(value) => setEditForm((current) => ({ ...current, wakeAddress: value }))}
+                  multiline
+                />
+
+                <Text style={styles.inputLabel}>Pickup Address</Text>
+                <TextInput
+                  style={[styles.input, styles.multilineInput]}
+                  value={editForm.pickupAddress}
+                  onChangeText={(value) => setEditForm((current) => ({ ...current, pickupAddress: value }))}
+                  multiline
+                />
+
+                <Text style={styles.inputLabel}>Message</Text>
+                <TextInput
+                  style={[styles.input, styles.multilineInput]}
+                  value={editForm.tributeMessage}
+                  onChangeText={(value) => setEditForm((current) => ({ ...current, tributeMessage: value }))}
+                  multiline
+                />
+
+                <View style={styles.actionStack}>
+                  <TouchableOpacity style={[styles.editButton, savingEdit ? styles.buttonDisabled : null]} onPress={() => void saveRequestEdits()} disabled={savingEdit}>
+                    <Text style={styles.editButtonText}>{savingEdit ? "Saving..." : "Save Changes"}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.closeButton} onPress={closeEditRequest} disabled={savingEdit}>
+                    <Text style={styles.closeButtonText}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            ) : null}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -270,7 +521,7 @@ export default function FuneralMyServiceRequestsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f8f7f3",
+    backgroundColor: "#eef1ec",
   },
   content: {
     padding: 18,
@@ -280,23 +531,41 @@ const styles = StyleSheet.create({
   headerCard: {
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "#ece7df",
-    backgroundColor: "#fffaf5",
+    borderColor: "#d9d6cd",
+    backgroundColor: "#f8f6f2",
     padding: 18,
   },
+  backButton: {
+    alignSelf: "flex-start",
+    minHeight: 38,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#d9d6cd",
+    backgroundColor: "#ffffff",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  backButtonText: {
+    color: "#22312d",
+    fontSize: 13,
+    fontWeight: "800",
+  },
   headerEyebrow: {
-    color: "#a16207",
+    color: "#8b7255",
     fontSize: 12,
     fontWeight: "800",
   },
   headerTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 24,
     fontWeight: "900",
     marginTop: 4,
   },
   headerSubtitle: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
     marginTop: 8,
@@ -307,7 +576,7 @@ const styles = StyleSheet.create({
     paddingVertical: 42,
   },
   loadingText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     marginTop: 10,
   },
@@ -315,19 +584,19 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     alignItems: "center",
     paddingHorizontal: 22,
     paddingVertical: 30,
   },
   emptyTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 18,
     fontWeight: "900",
     marginTop: 12,
   },
   emptyText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
@@ -337,7 +606,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     padding: 16,
   },
   requestTopRow: {
@@ -350,18 +619,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   requestName: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 17,
     fontWeight: "900",
   },
   requestShop: {
-    color: "#a16207",
+    color: "#8b7255",
     fontSize: 13,
     fontWeight: "800",
     marginTop: 4,
   },
   requestMeta: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     marginTop: 8,
   },
@@ -389,21 +658,28 @@ const styles = StyleSheet.create({
     maxWidth: 480,
     maxHeight: "86%",
     borderRadius: 24,
-    backgroundColor: "#fffaf5",
+    backgroundColor: "#f8f6f2",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     padding: 18,
   },
   modalTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 22,
     fontWeight: "900",
   },
   modalSubtitle: {
-    color: "#a16207",
+    color: "#8b7255",
     fontSize: 13,
     fontWeight: "800",
     marginTop: 4,
+    marginBottom: 14,
+  },
+  modalCaption: {
+    color: "#62706b",
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 6,
     marginBottom: 14,
   },
   modalImage: {
@@ -419,21 +695,43 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   detailLabel: {
-    color: "#44403c",
+    color: "#53615d",
     fontSize: 12,
     fontWeight: "900",
     marginTop: 10,
     marginBottom: 4,
   },
   detailValue: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 14,
     lineHeight: 20,
+  },
+  inputLabel: {
+    color: "#53615d",
+    fontSize: 12,
+    fontWeight: "900",
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  input: {
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#d2d7d1",
+    backgroundColor: "#fcfcfb",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: "#22312d",
+    fontSize: 14,
+  },
+  multilineInput: {
+    minHeight: 96,
+    textAlignVertical: "top",
   },
   statusInfoCard: {
     marginTop: 18,
     borderRadius: 16,
-    backgroundColor: "#f5f5f4",
+    backgroundColor: "#ece9e3",
     padding: 14,
   },
   contactActionRow: {
@@ -446,8 +744,8 @@ const styles = StyleSheet.create({
     minHeight: 42,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#ece7df",
-    backgroundColor: "#fffdf9",
+    borderColor: "#d9d6cd",
+    backgroundColor: "#fbfaf7",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -457,17 +755,50 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   contactActionButtonText: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 13,
     fontWeight: "900",
   },
+  actionStack: {
+    gap: 10,
+    marginTop: 16,
+  },
+  editButton: {
+    minHeight: 48,
+    borderRadius: 16,
+    backgroundColor: "#22312d",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  cancelButton: {
+    minHeight: 48,
+    borderRadius: 16,
+    backgroundColor: "#fee2e2",
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelButtonText: {
+    color: "#991b1b",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
   statusInfoTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 14,
     fontWeight: "900",
   },
   statusInfoText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 19,
     marginTop: 4,
@@ -475,13 +806,13 @@ const styles = StyleSheet.create({
   closeButton: {
     minHeight: 46,
     borderRadius: 16,
-    backgroundColor: "#f5f5f4",
+    backgroundColor: "#ece9e3",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 14,
   },
   closeButtonText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 14,
     fontWeight: "900",
   },

@@ -7,8 +7,25 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db, uploadCertificate } from "@/services";
+import { sanitizePlainText } from "@/utils/inputSecurity";
 
 const VAT_OPTIONS = ["VAT Registered", "Non Registered"];
+const isPermissionDeniedError = (error: any) =>
+  error?.code === "permission-denied" ||
+  /missing or insufficient permissions/i.test(String(error?.message || ""));
+
+const FIELD_LIMITS = {
+  shopName: 120,
+  shopAddress: 220,
+  shopPhoneNumber: 24,
+  individualRegisteredName: 120,
+  businessName: 140,
+  generalLocation: 120,
+  registeredAddress: 220,
+  zipCode: 10,
+  tin: 32,
+  birCertificateUrl: 1000,
+} as const;
 
 export default function FuneralBusinessInformationScreen({ navigation, route }: any) {
   const draft = route.params?.draft || {};
@@ -44,25 +61,20 @@ export default function FuneralBusinessInformationScreen({ navigation, route }: 
     }
   };
 
-  const handleSubmit = async () => {
+  const submitRegistration = async (payload: {
+    shopName: string;
+    shopAddress: string;
+    shopPhoneNumber: string;
+    individualRegisteredName: string;
+    businessName: string;
+    generalLocation: string;
+    registeredAddress: string;
+    zipCode: string;
+    tin: string;
+    birCertificateUrl: string;
+  }) => {
     const user = auth.currentUser;
     if (!user) return;
-
-    if (
-      !draft.shopName?.trim() ||
-      !draft.shopAddress?.trim() ||
-      !draft.shopPhoneNumber?.trim() ||
-      !individualRegisteredName.trim() ||
-      !businessName.trim() ||
-      !generalLocation.trim() ||
-      !registeredAddress.trim() ||
-      !zipCode.trim() ||
-      !tin.trim() ||
-      !birCertificateUrl
-    ) {
-      Alert.alert("Missing fields", "Please complete all required business information and upload the BIR certificate.");
-      return;
-    }
 
     setSubmitting(true);
     try {
@@ -73,19 +85,20 @@ export default function FuneralBusinessInformationScreen({ navigation, route }: 
           funeralShopRejectionReason: null,
           funeralShopSubmittedAt: serverTimestamp(),
           funeralShopInfo: {
-            shopName: draft.shopName.trim(),
-            shopAddress: draft.shopAddress.trim(),
-            shopPhoneNumber: draft.shopPhoneNumber.trim(),
+            shopName: payload.shopName,
+            shopAddress: payload.shopAddress,
+            shopPhoneNumber: payload.shopPhoneNumber,
+            shopImageUrl: null,
           },
           funeralBusinessInfo: {
-            individualRegisteredName: individualRegisteredName.trim(),
-            businessName: businessName.trim(),
-            generalLocation: generalLocation.trim(),
-            registeredAddress: registeredAddress.trim(),
-            zipCode: zipCode.trim(),
-            tin: tin.trim(),
+            individualRegisteredName: payload.individualRegisteredName,
+            businessName: payload.businessName,
+            generalLocation: payload.generalLocation,
+            registeredAddress: payload.registeredAddress,
+            zipCode: payload.zipCode,
+            tin: payload.tin,
             vatRegistrationStatus,
-            birCertificateUrl,
+            birCertificateUrl: payload.birCertificateUrl,
           },
         },
         { merge: true }
@@ -98,10 +111,65 @@ export default function FuneralBusinessInformationScreen({ navigation, route }: 
         },
       ]);
     } catch (error: any) {
-      Alert.alert("Submit failed", error?.message || "Failed to submit shop registration.");
+      const message = isPermissionDeniedError(error)
+        ? "Unable to submit your registration right now. Please try again in a moment."
+        : error?.message || "Failed to submit shop registration.";
+      Alert.alert("Submit failed", message);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSubmit = () => {
+    const safeShopName = sanitizePlainText(draft.shopName || "", FIELD_LIMITS.shopName);
+    const safeShopAddress = sanitizePlainText(draft.shopAddress || "", FIELD_LIMITS.shopAddress);
+    const safeShopPhoneNumber = sanitizePlainText(draft.shopPhoneNumber || "", FIELD_LIMITS.shopPhoneNumber);
+    const safeIndividualRegisteredName = sanitizePlainText(individualRegisteredName, FIELD_LIMITS.individualRegisteredName);
+    const safeBusinessName = sanitizePlainText(businessName, FIELD_LIMITS.businessName);
+    const safeGeneralLocation = sanitizePlainText(generalLocation, FIELD_LIMITS.generalLocation);
+    const safeRegisteredAddress = sanitizePlainText(registeredAddress, FIELD_LIMITS.registeredAddress);
+    const safeZipCode = sanitizePlainText(zipCode, FIELD_LIMITS.zipCode);
+    const safeTin = sanitizePlainText(tin, FIELD_LIMITS.tin);
+    const safeBirCertificateUrl = birCertificateUrl ? sanitizePlainText(birCertificateUrl, FIELD_LIMITS.birCertificateUrl) : "";
+
+    if (
+      !safeShopName ||
+      !safeShopAddress ||
+      !safeShopPhoneNumber ||
+      !safeIndividualRegisteredName ||
+      !safeBusinessName ||
+      !safeGeneralLocation ||
+      !safeRegisteredAddress ||
+      !safeZipCode ||
+      !safeTin ||
+      !safeBirCertificateUrl
+    ) {
+      Alert.alert("Missing fields", "Please complete all required business information and upload the BIR certificate.");
+      return;
+    }
+
+    Alert.alert("Submit registration?", "Are you sure you want to submit your funeral shop registration?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Submit",
+        onPress: () =>
+          void submitRegistration({
+            shopName: safeShopName,
+            shopAddress: safeShopAddress,
+            shopPhoneNumber: safeShopPhoneNumber,
+            individualRegisteredName: safeIndividualRegisteredName,
+            businessName: safeBusinessName,
+            generalLocation: safeGeneralLocation,
+            registeredAddress: safeRegisteredAddress,
+            zipCode: safeZipCode,
+            tin: safeTin,
+            birCertificateUrl: safeBirCertificateUrl,
+          }),
+      },
+    ]);
   };
 
   return (
@@ -142,7 +210,7 @@ export default function FuneralBusinessInformationScreen({ navigation, route }: 
 
             <Text style={styles.label}>BIR Certificate of Registration *</Text>
             <TouchableOpacity style={styles.uploadButton} onPress={pickBirCertificate} disabled={uploading}>
-              <Ionicons name="cloud-upload-outline" size={18} color="#334155" />
+              <Ionicons name="cloud-upload-outline" size={18} color="#5a6b64" />
               <Text style={styles.uploadButtonText}>{uploading ? "Uploading..." : "Upload Certificate"}</Text>
             </TouchableOpacity>
 
@@ -153,7 +221,7 @@ export default function FuneralBusinessInformationScreen({ navigation, route }: 
               </View>
             ) : null}
 
-            <PaperButton mode="contained" buttonColor="#334155" onPress={handleSubmit} loading={submitting} disabled={submitting || uploading} style={styles.primaryButton}>
+            <PaperButton mode="contained" buttonColor="#5a6b64" onPress={handleSubmit} loading={submitting} disabled={submitting || uploading} style={styles.primaryButton}>
               Submit
             </PaperButton>
           </Card.Content>
@@ -166,7 +234,7 @@ export default function FuneralBusinessInformationScreen({ navigation, route }: 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#eef1ec",
   },
   content: {
     padding: 16,
@@ -175,7 +243,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   kicker: {
-    color: "#64748b",
+    color: "#75807b",
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase",
@@ -189,13 +257,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subtitle: {
-    color: "#475569",
+    color: "#66746f",
     fontSize: 14,
     lineHeight: 21,
     marginBottom: 18,
   },
   label: {
-    color: "#374151",
+    color: "#4c5b57",
     fontSize: 14,
     fontWeight: "700",
     marginTop: 12,
@@ -203,11 +271,11 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: "#cbd2cb",
     borderRadius: 10,
     padding: 12,
     backgroundColor: "#ffffff",
-    color: "#111827",
+    color: "#22312d",
     fontSize: 15,
   },
   multilineInput: {
@@ -216,7 +284,7 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: "#cbd2cb",
     borderRadius: 10,
     overflow: "hidden",
     backgroundColor: "#ffffff",
@@ -227,13 +295,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: "#cad5cc",
     borderRadius: 10,
     paddingVertical: 14,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fbfcf8",
   },
   uploadButtonText: {
-    color: "#334155",
+    color: "#5a6b64",
     fontSize: 14,
     fontWeight: "700",
   },
@@ -243,7 +311,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#d8ddd7",
     alignItems: "center",
   },
   previewImage: {
@@ -253,7 +321,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   previewText: {
-    color: "#334155",
+    color: "#5a6b64",
     fontSize: 14,
     fontWeight: "700",
   },

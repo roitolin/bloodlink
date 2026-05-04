@@ -108,12 +108,12 @@ export default function FuneralHomeScreen({ navigation }: any) {
           </View>
 
           <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate("Shops")}>
-            <Ionicons name="storefront-outline" size={18} color="#171717" />
+            <Ionicons name="storefront-outline" size={18} color="#22312d" />
           </TouchableOpacity>
         </View>
 
         <View style={styles.searchWrap}>
-          <Ionicons name="search-outline" size={18} color="#737373" />
+          <Ionicons name="search-outline" size={18} color="#8a928d" />
           <TextInput
             placeholder="Search caskets or shops"
             placeholderTextColor="#a3a3a3"
@@ -122,7 +122,7 @@ export default function FuneralHomeScreen({ navigation }: any) {
             onChangeText={setQueryText}
           />
           <TouchableOpacity style={styles.searchAction} onPress={() => navigation.navigate("Shops")}>
-            <Ionicons name="storefront" size={18} color="#171717" />
+            <Ionicons name="storefront" size={18} color="#22312d" />
           </TouchableOpacity>
         </View>
 
@@ -146,7 +146,7 @@ export default function FuneralHomeScreen({ navigation }: any) {
               </TouchableOpacity>
             ) : (
               <View style={styles.heroImageFallback}>
-                <Ionicons name="albums-outline" size={34} color="#171717" />
+                <Ionicons name="albums-outline" size={34} color="#22312d" />
               </View>
             )}
           </View>
@@ -156,18 +156,18 @@ export default function FuneralHomeScreen({ navigation }: any) {
           <Text style={styles.sectionTitle}>Available Caskets</Text>
           <TouchableOpacity style={styles.seeAllRow} onPress={() => navigation.navigate("Shops")}>
             <Text style={styles.seeAllText}>Verified Shops</Text>
-            <Ionicons name="chevron-forward" size={14} color="#737373" />
+            <Ionicons name="chevron-forward" size={14} color="#8a928d" />
           </TouchableOpacity>
         </View>
 
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color="#171717" />
+            <ActivityIndicator size="large" color="#22312d" />
             <Text style={styles.loadingText}>Loading live products...</Text>
           </View>
         ) : filteredProducts.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Ionicons name="cube-outline" size={28} color="#78716c" />
+            <Ionicons name="cube-outline" size={28} color="#86908a" />
             <Text style={styles.emptyTitle}>No caskets available yet</Text>
             <Text style={styles.emptyText}>
               Once a verified shop adds a casket product, it will automatically show here on Home.
@@ -181,7 +181,7 @@ export default function FuneralHomeScreen({ navigation }: any) {
                   <Image source={{ uri: getPrimaryProductImage(item) || "" }} style={styles.productImage} resizeMode="cover" />
                 ) : (
                   <View style={styles.productVisual}>
-                    <Ionicons name="cube-outline" size={44} color="#374151" />
+                    <Ionicons name="cube-outline" size={44} color="#4c5b57" />
                   </View>
                 )}
 
@@ -204,7 +204,7 @@ export default function FuneralHomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f8f7f3",
+    backgroundColor: "#eef1ec",
   },
   content: {
     paddingHorizontal: 18,
@@ -218,13 +218,13 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   brand: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 32,
     fontWeight: "900",
     letterSpacing: -1.2,
   },
   subbrand: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 19,
     marginTop: 4,
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -249,34 +249,34 @@ const styles = StyleSheet.create({
     paddingRight: 8,
     height: 54,
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     marginBottom: 18,
   },
   searchInput: {
     flex: 1,
     marginLeft: 8,
-    color: "#171717",
+    color: "#22312d",
     fontSize: 14,
   },
   searchAction: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#facc15",
+    backgroundColor: "#d6e2d2",
     alignItems: "center",
     justifyContent: "center",
   },
   heroCard: {
     flexDirection: "row",
     minHeight: 190,
-    backgroundColor: "#facc15",
+    backgroundColor: "#d6e2d2",
     borderRadius: 24,
     paddingTop: 16,
     paddingLeft: 16,
     paddingRight: 10,
     marginBottom: 24,
     overflow: "hidden",
-    shadowColor: "#ca8a04",
+    shadowColor: "#7e9080",
     shadowOpacity: 0.25,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 10 },
@@ -288,13 +288,13 @@ const styles = StyleSheet.create({
     paddingBottom: 18,
   },
   heroTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 28,
     lineHeight: 31,
     fontWeight: "900",
   },
   heroSubtitle: {
-    color: "#7c2d12",
+    color: "#796555",
     fontSize: 14,
     lineHeight: 20,
     fontWeight: "700",
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#171717",
+    backgroundColor: "#22312d",
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 999,
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sectionTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 22,
     fontWeight: "800",
   },
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   seeAllText: {
-    color: "#737373",
+    color: "#8a928d",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -362,27 +362,27 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 14,
     fontWeight: "700",
   },
   emptyCard: {
     borderRadius: 24,
-    backgroundColor: "#fffaf5",
+    backgroundColor: "#f8f6f2",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     alignItems: "center",
     paddingHorizontal: 18,
     paddingVertical: 28,
   },
   emptyTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 18,
     fontWeight: "900",
     marginTop: 12,
   },
   emptyText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
   },
   productImage: {
     width: "100%",
@@ -414,10 +414,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
-    backgroundColor: "#fff8d8",
+    backgroundColor: "#ebf1e8",
   },
   cardTitle: {
-    color: "#3f3f46",
+    color: "#41514d",
     fontSize: 13,
     fontWeight: "700",
     marginTop: 8,
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     minHeight: 34,
   },
   cardDescription: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 11,
     lineHeight: 16,
     minHeight: 32,
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   price: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 18,
     fontWeight: "900",
   },

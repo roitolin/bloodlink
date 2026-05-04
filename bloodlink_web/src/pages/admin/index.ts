@@ -4,6 +4,7 @@ export { default as AdminAuditLogsPage } from "./AdminAuditLogsPage";
 export { default as AdminDashboardPage } from "./AdminDashboardPage";
 export { default as AdminDonorsPage } from "./AdminDonorsPage";
 export { default as AdminFeedbackPage } from "./AdminFeedbackPage";
+export { default as AdminFuneralItemsPage } from "./AdminFuneralItemsPage";
 export { default as AdminFuneralShopsPage } from "./AdminFuneralShopsPage";
 export { default as AdminLayout } from "./AdminLayout";
 export { default as AdminModerationPage } from "./AdminModerationPage";

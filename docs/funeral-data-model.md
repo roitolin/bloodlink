@@ -7,6 +7,11 @@ This document defines the Firestore shape used for funeral registration data in 
 - Collection: `users`
 - Document ID: authenticated account UID (`users/{uid}`)
 - Funeral registration data is stored as nested fields on the user profile document.
+- Planned dedicated collections also exist for future migration:
+  - `funeral_shops`
+  - `funeral_items`
+
+See: [funeral-firestore-collections.md](/C:/GROUP2_PROJECT/bloodlink/docs/funeral-firestore-collections.md)
 
 ## Required Role
 

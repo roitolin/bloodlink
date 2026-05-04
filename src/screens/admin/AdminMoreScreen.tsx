@@ -12,9 +12,10 @@ export default function AdminMoreScreen({ navigation }: any) {
   const unreadSupportCount = useUnreadSupportCount();
   const adminNotificationCount = useAdminNotificationCount();
   const { donors: donorPendingCount, requests: requestPendingCount } = useAdminManagementBreakdownCount();
-  const isBloodAdmin = role === "admin" || role === "blood_admin";
-  const isFuneralAdmin = role === "admin" || role === "funeral_admin";
-  const canSeeCommsAndInsights = role === "admin" || role === "blood_admin";
+  const isRootAdmin = role === "super_admin" || role === "admin";
+  const isBloodAdmin = isRootAdmin || role === "blood_admin";
+  const isFuneralAdmin = isRootAdmin || role === "funeral_admin";
+  const canSeeCommsAndInsights = isRootAdmin || role === "blood_admin";
   const separatedToolsDescription =
     role === "blood_admin"
       ? "Open dedicated admin areas for blood operations and deeper monitoring controls."

@@ -64,6 +64,7 @@ type ProductCardProps = {
   item: ShopProduct;
   onPress: () => void;
   onEdit: () => void;
+  onDelete: () => void;
 };
 
 function getProductState(item: ShopProduct): ProductTab {
@@ -142,7 +143,7 @@ function formatUpdatedAt(value: string) {
 }
 
 function ProductStateBadge({ state }: { state: ProductTab }) {
-  const label = state === "live" ? "LIVE" : state === "soldout" ? "SOLD OUT" : "REVIEWING";
+  const label = state === "live" ? "AVAILABLE" : state === "soldout" ? "SOLD OUT" : "REVIEWING";
   const toneStyle = state === "live" ? styles.stateLive : state === "soldout" ? styles.stateSold : styles.stateReview;
 
   return (
@@ -152,7 +153,7 @@ function ProductStateBadge({ state }: { state: ProductTab }) {
   );
 }
 
-function ProductCard({ item, onPress, onEdit }: ProductCardProps) {
+function ProductCard({ item, onPress, onEdit, onDelete }: ProductCardProps) {
   const productState = getProductState(item);
   const productImage = getPrimaryProductImage(item);
 
@@ -162,7 +163,7 @@ function ProductCard({ item, onPress, onEdit }: ProductCardProps) {
         <Image source={{ uri: productImage }} style={styles.productImage} resizeMode="cover" />
       ) : (
         <View style={styles.productImageFallback}>
-          <Ionicons name="image-outline" size={24} color="#a59a90" />
+          <Ionicons name="image-outline" size={24} color="#9aa39d" />
         </View>
       )}
 
@@ -190,6 +191,9 @@ function ProductCard({ item, onPress, onEdit }: ProductCardProps) {
           <TouchableOpacity style={styles.inlinePrimaryButton} onPress={onEdit}>
             <Text style={styles.inlinePrimaryButtonText}>Edit</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.inlineDangerButton} onPress={onDelete}>
+            <Text style={styles.inlineDangerButtonText}>Delete</Text>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.productUpdatedText}>{formatUpdatedAt(item.updatedAt)}</Text>
@@ -202,7 +206,7 @@ function DetailRow({ icon, label, value }: { icon: IoniconName; label: string; v
   return (
     <View style={styles.detailRow}>
       <View style={styles.detailIconWrap}>
-        <Ionicons name={icon} size={16} color="#8c4d2f" />
+        <Ionicons name={icon} size={16} color="#7f6653" />
       </View>
       <View style={styles.detailCopy}>
         <Text style={styles.detailLabel}>{label}</Text>
@@ -408,7 +412,7 @@ export default function FuneralShopCenterScreen({ navigation }: any) {
     return (
       <SafeAreaView style={styles.screen}>
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color="#8c4d2f" />
+          <ActivityIndicator size="large" color="#7f6653" />
           <Text style={styles.loadingText}>Loading your shop center...</Text>
         </View>
       </SafeAreaView>
@@ -427,7 +431,7 @@ export default function FuneralShopCenterScreen({ navigation }: any) {
 
             <View style={styles.topBar}>
               <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-                <Ionicons name="chevron-back" size={22} color="#171717" />
+                <Ionicons name="chevron-back" size={22} color="#22312d" />
               </TouchableOpacity>
 
               <View style={styles.topBarText}>
@@ -446,7 +450,7 @@ export default function FuneralShopCenterScreen({ navigation }: any) {
                   <Image source={{ uri: shopImageUrl }} style={styles.heroAvatarImage} resizeMode="cover" />
                 ) : (
                   <View style={styles.heroAvatarFallback}>
-                    <Ionicons name="storefront-outline" size={30} color="#171717" />
+                    <Ionicons name="storefront-outline" size={30} color="#22312d" />
                   </View>
                 )}
               </View>
@@ -456,7 +460,7 @@ export default function FuneralShopCenterScreen({ navigation }: any) {
                 <Text style={styles.heroTitle}>{shopDisplayName}</Text>
                 <Text style={styles.heroSubtitle}>{shopLocation}</Text>
                 <View style={styles.heroMetaRow}>
-                  <Ionicons name="call-outline" size={14} color="#44403c" />
+                  <Ionicons name="call-outline" size={14} color="#53615d" />
                   <Text style={styles.heroMetaText}>{shopContact}</Text>
                 </View>
               </View>
@@ -500,7 +504,7 @@ export default function FuneralShopCenterScreen({ navigation }: any) {
               </View>
               <View style={styles.catalogActions}>
                 <TouchableOpacity style={styles.refreshButton} onPress={() => void loadData()}>
-                  <Ionicons name="refresh-outline" size={16} color="#171717" />
+                  <Ionicons name="refresh-outline" size={16} color="#22312d" />
                 </TouchableOpacity>
                 <TouchableOpacity
                   activeOpacity={0.92}
@@ -508,7 +512,7 @@ export default function FuneralShopCenterScreen({ navigation }: any) {
                   onPress={openAddProductPage}
                   disabled={!isVerified}
                 >
-                  <Ionicons name="add" size={16} color={isVerified ? "#171717" : "#8f8a80"} />
+                  <Ionicons name="add" size={16} color={isVerified ? "#22312d" : "#8b938c"} />
                   <Text style={[styles.catalogAddButtonText, !isVerified ? styles.catalogAddButtonTextDisabled : null]}>Add Product</Text>
                 </TouchableOpacity>
               </View>
@@ -541,7 +545,7 @@ export default function FuneralShopCenterScreen({ navigation }: any) {
 
             {visibleProducts.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="albums-outline" size={22} color="#8b8578" />
+                <Ionicons name="albums-outline" size={22} color="#8b938c" />
                 <Text style={styles.emptyStateTitle}>Nothing in this tab yet</Text>
                 <Text style={styles.emptyStateText}>Add a product or switch tabs to review the rest of your catalog.</Text>
               </View>
@@ -552,6 +556,7 @@ export default function FuneralShopCenterScreen({ navigation }: any) {
                   item={item}
                   onPress={() => openProductDetailsModal(item)}
                   onEdit={() => openEditProductPage(item)}
+                  onDelete={() => removeProduct(item)}
                 />
               ))
             )}
@@ -569,7 +574,7 @@ export default function FuneralShopCenterScreen({ navigation }: any) {
               {shopImageUrl ? <Image source={{ uri: shopImageUrl }} style={styles.previewImage} resizeMode="cover" /> : null}
 
               <TouchableOpacity style={styles.modalOutlineButton} onPress={pickAndUploadShopImage} disabled={uploadingShopImage}>
-                {uploadingShopImage ? <ActivityIndicator size="small" color="#8c4d2f" /> : <Ionicons name="camera-outline" size={18} color="#8c4d2f" />}
+                {uploadingShopImage ? <ActivityIndicator size="small" color="#7f6653" /> : <Ionicons name="camera-outline" size={18} color="#7f6653" />}
                 <Text style={styles.modalOutlineButtonText}>{uploadingShopImage ? "Uploading..." : "Edit Shop Picture"}</Text>
               </TouchableOpacity>
 
@@ -663,7 +668,7 @@ export default function FuneralShopCenterScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f8f7f3",
+    backgroundColor: "#eef1ec",
   },
   screenBody: {
     flex: 1,
@@ -677,7 +682,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   loadingText: {
-    color: "#705f53",
+    color: "#77827d",
     fontSize: 14,
     fontWeight: "700",
   },
@@ -689,7 +694,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 30,
-    backgroundColor: "#facc15",
+    backgroundColor: "#d6e2d2",
     overflow: "hidden",
   },
   heroImage: {
@@ -700,7 +705,7 @@ const styles = StyleSheet.create({
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(250, 204, 21, 0.84)",
+    backgroundColor: "rgba(214, 226, 210, 0.84)",
   },
   heroGlowTop: {
     position: "absolute",
@@ -709,7 +714,7 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: "rgba(255, 255, 255, 0.24)",
+    backgroundColor: "rgba(255, 255, 255, 0.34)",
   },
   heroGlowBottom: {
     position: "absolute",
@@ -718,7 +723,7 @@ const styles = StyleSheet.create({
     width: 260,
     height: 260,
     borderRadius: 130,
-    backgroundColor: "rgba(202, 138, 4, 0.22)",
+    backgroundColor: "rgba(126, 144, 128, 0.18)",
   },
   topBar: {
     zIndex: 2,
@@ -732,7 +737,7 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.58)",
     borderWidth: 1,
     borderColor: "rgba(23, 23, 23, 0.08)",
   },
@@ -740,13 +745,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topBarLabel: {
-    color: "#7c2d12",
+    color: "#796555",
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1,
   },
   topBarTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 28,
     fontWeight: "900",
     marginTop: 2,
@@ -771,7 +776,7 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   heroAvatarWrap: {
-    shadowColor: "#ca8a04",
+    shadowColor: "#7e9080",
     shadowOpacity: 0.18,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
@@ -790,7 +795,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.34)",
+    backgroundColor: "rgba(255, 255, 255, 0.44)",
     borderWidth: 1,
     borderColor: "rgba(23, 23, 23, 0.08)",
   },
@@ -798,20 +803,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   heroEyebrow: {
-    color: "#7c2d12",
+    color: "#796555",
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.5,
   },
   heroTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 30,
     lineHeight: 34,
     fontWeight: "900",
     marginTop: 6,
   },
   heroSubtitle: {
-    color: "#44403c",
+    color: "#53615d",
     fontSize: 14,
     lineHeight: 21,
     marginTop: 8,
@@ -837,7 +842,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: 16,
     paddingHorizontal: 14,
-    backgroundColor: "#171717",
+    backgroundColor: "#22312d",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -868,7 +873,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 10,
-    shadowColor: "#ca8a04",
+    shadowColor: "#7e9080",
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
@@ -890,11 +895,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 16,
     borderRadius: 24,
-    backgroundColor: "#fffaf5",
+    backgroundColor: "#f8f6f2",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     padding: 16,
-    shadowColor: "#ca8a04",
+    shadowColor: "#7e9080",
     shadowOpacity: 0.06,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
@@ -908,12 +913,12 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sectionTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 20,
     fontWeight: "900",
   },
   sectionSubtitle: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
     marginTop: 4,
@@ -932,9 +937,9 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff8d8",
+    backgroundColor: "#ebf1e8",
     borderWidth: 1,
-    borderColor: "#f3e8b1",
+    borderColor: "#cfdacb",
   },
   detailRow: {
     flexDirection: "row",
@@ -948,7 +953,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 12,
-    backgroundColor: "#fff4bf",
+    backgroundColor: "#e4ece0",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -956,7 +961,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   detailLabel: {
-    color: "#92400e",
+    color: "#86654a",
     fontSize: 12,
     fontWeight: "800",
   },
@@ -969,20 +974,20 @@ const styles = StyleSheet.create({
   emptyState: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     backgroundColor: "#fff",
     alignItems: "center",
     paddingHorizontal: 18,
     paddingVertical: 24,
   },
   emptyStateTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 17,
     fontWeight: "900",
     marginTop: 10,
   },
   emptyStateText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
@@ -991,7 +996,7 @@ const styles = StyleSheet.create({
   emptyStateButton: {
     minHeight: 42,
     borderRadius: 14,
-    backgroundColor: "#171717",
+    backgroundColor: "#22312d",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
@@ -1008,7 +1013,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     backgroundColor: "#fff",
     marginTop: 12,
   },
@@ -1021,7 +1026,7 @@ const styles = StyleSheet.create({
     width: 104,
     height: 104,
     borderRadius: 18,
-    backgroundColor: "#fff8d8",
+    backgroundColor: "#ebf1e8",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1036,59 +1041,80 @@ const styles = StyleSheet.create({
   },
   productName: {
     flex: 1,
-    color: "#171717",
+    color: "#22312d",
     fontSize: 16,
     fontWeight: "900",
   },
   productPrice: {
-    color: "#b45309",
+    color: "#9a7c5d",
     fontSize: 16,
     fontWeight: "900",
     marginTop: 8,
   },
   productMeta: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 12,
     fontWeight: "800",
     marginTop: 4,
   },
   productDescription: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 12,
     lineHeight: 18,
     marginTop: 6,
   },
   productActionRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginTop: 12,
   },
   inlineGhostButton: {
+    flex: 1,
+    minWidth: 96,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#e7dcb2",
     paddingHorizontal: 12,
     paddingVertical: 8,
     backgroundColor: "#fffdf5",
+    alignItems: "center",
   },
   inlineGhostButtonText: {
-    color: "#a16207",
+    color: "#8b7255",
     fontSize: 11,
     fontWeight: "900",
   },
   inlinePrimaryButton: {
+    minWidth: 72,
     borderRadius: 999,
-    backgroundColor: "#facc15",
+    backgroundColor: "#d6e2d2",
     paddingHorizontal: 12,
     paddingVertical: 8,
+    alignItems: "center",
   },
   inlinePrimaryButtonText: {
-    color: "#171717",
+    color: "#22312d",
+    fontSize: 11,
+    fontWeight: "900",
+  },
+  inlineDangerButton: {
+    minWidth: 72,
+    borderRadius: 999,
+    backgroundColor: "#fee2e2",
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  inlineDangerButtonText: {
+    color: "#991b1b",
     fontSize: 11,
     fontWeight: "900",
   },
   productUpdatedText: {
-    color: "#9a8f85",
+    color: "#8f9891",
     fontSize: 11,
     fontWeight: "700",
     marginTop: 10,
@@ -1108,33 +1134,33 @@ const styles = StyleSheet.create({
     backgroundColor: "#fde68a",
   },
   stateBadgeText: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 10,
     fontWeight: "900",
   },
   catalogAddButton: {
     minHeight: 40,
     borderRadius: 14,
-    backgroundColor: "#facc15",
+    backgroundColor: "#d6e2d2",
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: "#eab308",
+    borderColor: "#c3d0bf",
   },
   catalogAddButtonDisabled: {
-    backgroundColor: "#f5f5f4",
+    backgroundColor: "#ece9e3",
     borderColor: "#e7e5e4",
   },
   catalogAddButtonText: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 13,
     fontWeight: "900",
   },
   catalogAddButtonTextDisabled: {
-    color: "#8f8a80",
+    color: "#8b938c",
   },
   tabRow: {
     flexDirection: "row",
@@ -1145,17 +1171,17 @@ const styles = StyleSheet.create({
   tabButton: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     backgroundColor: "#fff",
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   tabButtonActive: {
-    backgroundColor: "#171717",
-    borderColor: "#171717",
+    backgroundColor: "#22312d",
+    borderColor: "#22312d",
   },
   tabButtonText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 12,
     fontWeight: "900",
   },
@@ -1174,25 +1200,25 @@ const styles = StyleSheet.create({
     maxWidth: 460,
     maxHeight: "84%",
     borderRadius: 24,
-    backgroundColor: "#fffaf5",
+    backgroundColor: "#f8f6f2",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     padding: 18,
   },
   modalTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 22,
     fontWeight: "900",
   },
   modalCaption: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
     marginTop: 6,
     marginBottom: 14,
   },
   inputLabel: {
-    color: "#44403c",
+    color: "#53615d",
     fontSize: 12,
     fontWeight: "900",
     marginBottom: 6,
@@ -1200,12 +1226,12 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     borderRadius: 16,
-    backgroundColor: "#fffdf9",
+    backgroundColor: "#fbfaf7",
     paddingHorizontal: 12,
     paddingVertical: 12,
-    color: "#171717",
+    color: "#22312d",
   },
   multilineInput: {
     minHeight: 104,
@@ -1230,8 +1256,8 @@ const styles = StyleSheet.create({
     minHeight: 46,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#ece7df",
-    backgroundColor: "#fffdf9",
+    borderColor: "#d9d6cd",
+    backgroundColor: "#fbfaf7",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -1239,7 +1265,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   modalOutlineButtonText: {
-    color: "#a16207",
+    color: "#8b7255",
     fontSize: 13,
     fontWeight: "900",
   },
@@ -1250,7 +1276,7 @@ const styles = StyleSheet.create({
   modalPrimaryButton: {
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: "#171717",
+    backgroundColor: "#22312d",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -1278,12 +1304,12 @@ const styles = StyleSheet.create({
   modalGhostButton: {
     minHeight: 46,
     borderRadius: 16,
-    backgroundColor: "#f5f5f4",
+    backgroundColor: "#ece9e3",
     alignItems: "center",
     justifyContent: "center",
   },
   modalGhostButtonText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 14,
     fontWeight: "900",
   },

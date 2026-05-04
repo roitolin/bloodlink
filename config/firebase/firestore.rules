@@ -111,6 +111,19 @@ service cloud.firestore {
       );
     }
 
+    function isFuneralText(value, maxLen) {
+      return value is string &&
+        value.size() > 0 &&
+        value.size() <= maxLen;
+    }
+
+    function isFuneralOptionalText(value, maxLen) {
+      return value == null || (
+        value is string &&
+        value.size() <= maxLen
+      );
+    }
+
     function isValidLocationMap(location) {
       return location is map &&
         location.latitude is number &&
@@ -157,26 +170,30 @@ service cloud.firestore {
 
     function isValidFuneralShopInfo(shopInfo) {
       return shopInfo is map &&
-        isSafeOptionalText(shopInfo.shopName, 120) &&
-        isSafeOptionalText(shopInfo.shopAddress, 220) &&
-        isSafeOptionalText(shopInfo.shopPhoneNumber, 24) &&
-        isSafeOptionalText(shopInfo.shopImageUrl, 1000);
+        isFuneralOptionalText(shopInfo.shopName, 120) &&
+        isFuneralOptionalText(shopInfo.shopAddress, 220) &&
+        isFuneralOptionalText(shopInfo.shopPhoneNumber, 24) &&
+        isFuneralOptionalText(shopInfo.shopImageUrl, 1000);
     }
 
     function isValidFuneralBusinessInfo(businessInfo) {
       return businessInfo is map &&
-        isSafeOptionalText(businessInfo.individualRegisteredName, 120) &&
-        isSafeOptionalText(businessInfo.businessName, 140) &&
-        isSafeOptionalText(businessInfo.generalLocation, 120) &&
-        isSafeOptionalText(businessInfo.registeredAddress, 220) &&
-        isSafeOptionalText(businessInfo.zipCode, 10) &&
-        isSafeOptionalText(businessInfo.tin, 32) &&
+        isFuneralOptionalText(businessInfo.individualRegisteredName, 120) &&
+        isFuneralOptionalText(businessInfo.businessName, 140) &&
+        isFuneralOptionalText(businessInfo.generalLocation, 120) &&
+        isFuneralOptionalText(businessInfo.registeredAddress, 220) &&
+        isFuneralOptionalText(businessInfo.zipCode, 10) &&
+        isFuneralOptionalText(businessInfo.tin, 32) &&
         (
           businessInfo.vatRegistrationStatus == null ||
           businessInfo.vatRegistrationStatus == "VAT Registered" ||
           businessInfo.vatRegistrationStatus == "Non Registered"
         ) &&
-        isSafeOptionalText(businessInfo.birCertificateUrl, 1000);
+        isFuneralOptionalText(businessInfo.birCertificateUrl, 1000);
+    }
+
+    function isTimestampLike(value) {
+      return value == null || value is timestamp;
     }
 
     function hasValidFuneralProfileData() {
@@ -185,10 +202,7 @@ service cloud.firestore {
         isValidFuneralShopStatus(request.resource.data.funeralShopStatus)
       ) &&
       isSafeOptionalText(request.resource.data.funeralShopRejectionReason, 300) &&
-      (
-        request.resource.data.funeralShopSubmittedAt == null ||
-        request.resource.data.funeralShopSubmittedAt is timestamp
-      ) &&
+      isTimestampLike(request.resource.data.funeralShopSubmittedAt) &&
       (
         request.resource.data.funeralShopInfo == null ||
         isValidFuneralShopInfo(request.resource.data.funeralShopInfo)
@@ -202,21 +216,21 @@ service cloud.firestore {
         request.resource.data.funeralShopStatus != "verified" ||
         (
           request.resource.data.funeralShopInfo != null &&
-          isSafeText(request.resource.data.funeralShopInfo.shopName, 120) &&
-          isSafeText(request.resource.data.funeralShopInfo.shopAddress, 220) &&
-          isSafeText(request.resource.data.funeralShopInfo.shopPhoneNumber, 24) &&
+          isFuneralText(request.resource.data.funeralShopInfo.shopName, 120) &&
+          isFuneralText(request.resource.data.funeralShopInfo.shopAddress, 220) &&
+          isFuneralText(request.resource.data.funeralShopInfo.shopPhoneNumber, 24) &&
           request.resource.data.funeralBusinessInfo != null &&
-          isSafeText(request.resource.data.funeralBusinessInfo.individualRegisteredName, 120) &&
-          isSafeText(request.resource.data.funeralBusinessInfo.businessName, 140) &&
-          isSafeText(request.resource.data.funeralBusinessInfo.generalLocation, 120) &&
-          isSafeText(request.resource.data.funeralBusinessInfo.registeredAddress, 220) &&
-          isSafeText(request.resource.data.funeralBusinessInfo.zipCode, 10) &&
-          isSafeText(request.resource.data.funeralBusinessInfo.tin, 32) &&
+          isFuneralText(request.resource.data.funeralBusinessInfo.individualRegisteredName, 120) &&
+          isFuneralText(request.resource.data.funeralBusinessInfo.businessName, 140) &&
+          isFuneralText(request.resource.data.funeralBusinessInfo.generalLocation, 120) &&
+          isFuneralText(request.resource.data.funeralBusinessInfo.registeredAddress, 220) &&
+          isFuneralText(request.resource.data.funeralBusinessInfo.zipCode, 10) &&
+          isFuneralText(request.resource.data.funeralBusinessInfo.tin, 32) &&
           (
             request.resource.data.funeralBusinessInfo.vatRegistrationStatus == "VAT Registered" ||
             request.resource.data.funeralBusinessInfo.vatRegistrationStatus == "Non Registered"
           ) &&
-          isSafeText(request.resource.data.funeralBusinessInfo.birCertificateUrl, 1000)
+          isFuneralText(request.resource.data.funeralBusinessInfo.birCertificateUrl, 1000)
         )
       ) &&
       (
@@ -225,29 +239,126 @@ service cloud.firestore {
       );
     }
 
+    function isOwnerFuneralShopRegistrationSubmission(userId) {
+      return isSignedIn() &&
+        request.auth.uid == userId &&
+        request.resource.data.funeralShopStatus == "pending" &&
+        isTimestampLike(request.resource.data.funeralShopSubmittedAt) &&
+        isSafeOptionalText(request.resource.data.funeralShopRejectionReason, 300) &&
+        request.resource.data.funeralShopInfo is map &&
+        isFuneralText(request.resource.data.funeralShopInfo.shopName, 120) &&
+        isFuneralText(request.resource.data.funeralShopInfo.shopAddress, 220) &&
+        isFuneralText(request.resource.data.funeralShopInfo.shopPhoneNumber, 24) &&
+        isFuneralOptionalText(request.resource.data.funeralShopInfo.shopImageUrl, 1000) &&
+        request.resource.data.funeralBusinessInfo is map &&
+        isFuneralText(request.resource.data.funeralBusinessInfo.individualRegisteredName, 120) &&
+        isFuneralText(request.resource.data.funeralBusinessInfo.businessName, 140) &&
+        isFuneralText(request.resource.data.funeralBusinessInfo.generalLocation, 120) &&
+        isFuneralText(request.resource.data.funeralBusinessInfo.registeredAddress, 220) &&
+        isFuneralText(request.resource.data.funeralBusinessInfo.zipCode, 10) &&
+        isFuneralText(request.resource.data.funeralBusinessInfo.tin, 32) &&
+        (
+          request.resource.data.funeralBusinessInfo.vatRegistrationStatus == "VAT Registered" ||
+          request.resource.data.funeralBusinessInfo.vatRegistrationStatus == "Non Registered"
+        ) &&
+        isFuneralText(request.resource.data.funeralBusinessInfo.birCertificateUrl, 1000);
+    }
+
+    function isSafeOptionalStringList(value, maxItems, maxLen) {
+      return value == null || (
+        value is list &&
+        value.size() <= maxItems
+      );
+    }
+
+    function isSafeOptionalFuneralVariations(value) {
+      return value == null || (
+        value is list &&
+        value.size() <= 20
+      );
+    }
+
+    function isValidFuneralShopCollectionRecord() {
+      return request.resource.data.ownerId == request.auth.uid &&
+        isValidFuneralShopStatus(request.resource.data.status) &&
+        isFuneralOptionalText(request.resource.data.ownerName, 120) &&
+        isFuneralOptionalText(request.resource.data.ownerEmail, 180) &&
+        request.resource.data.shopInfo is map &&
+        isFuneralText(request.resource.data.shopInfo.shopName, 120) &&
+        isFuneralText(request.resource.data.shopInfo.shopAddress, 220) &&
+        isFuneralText(request.resource.data.shopInfo.shopPhoneNumber, 24) &&
+        isFuneralOptionalText(request.resource.data.shopInfo.shopImageUrl, 1000) &&
+        request.resource.data.businessInfo is map &&
+        isFuneralText(request.resource.data.businessInfo.individualRegisteredName, 120) &&
+        isFuneralText(request.resource.data.businessInfo.businessName, 140) &&
+        isFuneralText(request.resource.data.businessInfo.generalLocation, 120) &&
+        isFuneralText(request.resource.data.businessInfo.registeredAddress, 220) &&
+        isFuneralText(request.resource.data.businessInfo.zipCode, 10) &&
+        isFuneralText(request.resource.data.businessInfo.tin, 32) &&
+        (
+          request.resource.data.businessInfo.vatRegistrationStatus == "VAT Registered" ||
+          request.resource.data.businessInfo.vatRegistrationStatus == "Non Registered"
+        ) &&
+        isFuneralText(request.resource.data.businessInfo.birCertificateUrl, 1000) &&
+        isFuneralOptionalText(request.resource.data.rejectionReason, 300) &&
+        (
+          request.resource.data.submittedAt == null ||
+          request.resource.data.submittedAt is timestamp
+        ) &&
+        request.resource.data.createdAt is timestamp &&
+        request.resource.data.updatedAt is timestamp;
+    }
+
+    function isValidFuneralItemCollectionRecord() {
+      return request.resource.data.ownerId == request.auth.uid &&
+        request.resource.data.shopId is string &&
+        request.resource.data.shopId.size() > 0 &&
+        isSafeOptionalText(request.resource.data.shopName, 120) &&
+        isSafeOptionalText(request.resource.data.category, 80) &&
+        isSafeText(request.resource.data.name, 160) &&
+        isSafeOptionalText(request.resource.data.description, 1500) &&
+        isSafeOptionalText(request.resource.data.price, 40) &&
+        (request.resource.data.stock == null || (request.resource.data.stock is int && request.resource.data.stock >= 0)) &&
+        request.resource.data.active is bool &&
+        isSafeOptionalText(request.resource.data.imageUrl, 1000) &&
+        isSafeOptionalStringList(request.resource.data.galleryImageUrls, 12, 1000) &&
+        (request.resource.data.hasVariations == null || request.resource.data.hasVariations is bool) &&
+        isSafeOptionalFuneralVariations(request.resource.data.variations) &&
+        request.resource.data.createdAt is timestamp &&
+        request.resource.data.updatedAt is timestamp;
+    }
+
+    function isFuneralShopOwnerByDoc() {
+      return isSignedIn() && request.auth.uid == resource.data.ownerId;
+    }
+
+    function isFuneralItemOwnerByDoc() {
+      return isSignedIn() && request.auth.uid == resource.data.ownerId;
+    }
+
     function isValidFuneralServiceRequestCreate() {
       return request.resource.data.requesterId == request.auth.uid &&
         request.resource.data.shopId is string &&
         request.resource.data.shopId.size() > 0 &&
         isSafeText(request.resource.data.shopName, 140) &&
-        isSafeOptionalText(request.resource.data.shopContactNumber, 24) &&
-        isSafeOptionalText(request.resource.data.shopAddress, 220) &&
+        isSafeOptionalText(request.resource.data.get('shopContactNumber', null), 24) &&
+        isSafeOptionalText(request.resource.data.get('shopAddress', null), 220) &&
         request.resource.data.cartId is string &&
         request.resource.data.cartId.size() > 0 &&
         request.resource.data.productId is string &&
         request.resource.data.productId.size() > 0 &&
         isSafeText(request.resource.data.productName, 160) &&
-        isSafeOptionalText(request.resource.data.productPrice, 40) &&
-        isSafeOptionalText(request.resource.data.productImageUrl, 1000) &&
-        isSafeOptionalText(request.resource.data.variationName, 120) &&
-        isSafeOptionalText(request.resource.data.requestType, 40) &&
-        isSafeOptionalText(request.resource.data.customDesignNotes, 1500) &&
-        isSafeOptionalText(request.resource.data.memorialPhotoUrl, 1000) &&
-        isSafeOptionalText(request.resource.data.referencePhotoUrl, 1000) &&
+        isSafeOptionalText(request.resource.data.get('productPrice', null), 40) &&
+        isSafeOptionalText(request.resource.data.get('productImageUrl', null), 1000) &&
+        isSafeOptionalText(request.resource.data.get('variationName', null), 120) &&
+        isSafeOptionalText(request.resource.data.get('requestType', null), 40) &&
+        isSafeOptionalText(request.resource.data.get('customDesignNotes', null), 1500) &&
+        isSafeOptionalText(request.resource.data.get('memorialPhotoUrl', null), 1000) &&
+        isSafeOptionalText(request.resource.data.get('referencePhotoUrl', null), 1000) &&
         isSafeText(request.resource.data.deceasedFullName, 160) &&
         request.resource.data.deceasedDateOfBirth is string &&
         request.resource.data.deceasedDateOfBirth.size() > 0 &&
-        (request.resource.data.deceasedAge == null || request.resource.data.deceasedAge is int) &&
+        (request.resource.data.get('deceasedAge', null) == null || request.resource.data.deceasedAge is int) &&
         isSafeText(request.resource.data.tributeMessage, 1000) &&
         isSafeText(request.resource.data.familyCoordinatorName, 160) &&
         isSafeText(request.resource.data.wakeAddress, 240) &&
@@ -282,13 +393,13 @@ service cloud.firestore {
         request.resource.data.cartId == resource.data.cartId &&
         request.resource.data.productId == resource.data.productId &&
         request.resource.data.productName == resource.data.productName &&
-        request.resource.data.productPrice == resource.data.productPrice &&
-        request.resource.data.productImageUrl == resource.data.productImageUrl &&
-        request.resource.data.variationName == resource.data.variationName &&
-        request.resource.data.requestType == resource.data.requestType &&
-        request.resource.data.customDesignNotes == resource.data.customDesignNotes &&
-        request.resource.data.memorialPhotoUrl == resource.data.memorialPhotoUrl &&
-        request.resource.data.referencePhotoUrl == resource.data.referencePhotoUrl &&
+        request.resource.data.get('productPrice', null) == resource.data.get('productPrice', null) &&
+        request.resource.data.get('productImageUrl', null) == resource.data.get('productImageUrl', null) &&
+        request.resource.data.get('variationName', null) == resource.data.get('variationName', null) &&
+        request.resource.data.get('requestType', null) == resource.data.get('requestType', null) &&
+        request.resource.data.get('customDesignNotes', null) == resource.data.get('customDesignNotes', null) &&
+        request.resource.data.get('memorialPhotoUrl', null) == resource.data.get('memorialPhotoUrl', null) &&
+        request.resource.data.get('referencePhotoUrl', null) == resource.data.get('referencePhotoUrl', null) &&
         request.resource.data.deceasedFullName == resource.data.deceasedFullName &&
         request.resource.data.deceasedDateOfBirth == resource.data.deceasedDateOfBirth &&
         request.resource.data.deceasedAge == resource.data.deceasedAge &&
@@ -308,6 +419,80 @@ service cloud.firestore {
         );
     }
 
+    function isValidFuneralServiceRequestRequesterEdit() {
+      return isSignedIn() &&
+        request.auth.uid == resource.data.requesterId &&
+        resource.data.status == "pending_shop_acceptance" &&
+        request.resource.data.status == "pending_shop_acceptance" &&
+        request.resource.data.requesterId == resource.data.requesterId &&
+        request.resource.data.shopId == resource.data.shopId &&
+        request.resource.data.shopName == resource.data.shopName &&
+        request.resource.data.get('shopContactNumber', null) == resource.data.get('shopContactNumber', null) &&
+        request.resource.data.get('shopAddress', null) == resource.data.get('shopAddress', null) &&
+        request.resource.data.cartId == resource.data.cartId &&
+        request.resource.data.productId == resource.data.productId &&
+        request.resource.data.productName == resource.data.productName &&
+        request.resource.data.get('productPrice', null) == resource.data.get('productPrice', null) &&
+        request.resource.data.get('productImageUrl', null) == resource.data.get('productImageUrl', null) &&
+        request.resource.data.get('variationName', null) == resource.data.get('variationName', null) &&
+        request.resource.data.get('requestType', null) == resource.data.get('requestType', null) &&
+        request.resource.data.get('customDesignNotes', null) == resource.data.get('customDesignNotes', null) &&
+        request.resource.data.get('memorialPhotoUrl', null) == resource.data.get('memorialPhotoUrl', null) &&
+        request.resource.data.get('referencePhotoUrl', null) == resource.data.get('referencePhotoUrl', null) &&
+        isSafeText(request.resource.data.deceasedFullName, 160) &&
+        request.resource.data.deceasedDateOfBirth == resource.data.deceasedDateOfBirth &&
+        request.resource.data.deceasedAge == resource.data.deceasedAge &&
+        isSafeText(request.resource.data.tributeMessage, 1000) &&
+        isSafeText(request.resource.data.familyCoordinatorName, 160) &&
+        isSafeText(request.resource.data.wakeAddress, 240) &&
+        isSafeText(request.resource.data.pickupAddress, 240) &&
+        isSafeText(request.resource.data.contactNumber, 24) &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt is timestamp &&
+        request.resource.data.get('acceptedAt', null) == resource.data.get('acceptedAt', null) &&
+        request.resource.data.get('declinedAt', null) == resource.data.get('declinedAt', null) &&
+        request.resource.data.get('cancelledAt', null) == resource.data.get('cancelledAt', null) &&
+        request.resource.data.get('shopRespondedAt', null) == resource.data.get('shopRespondedAt', null) &&
+        request.resource.data.get('handledByShopId', null) == resource.data.get('handledByShopId', null);
+    }
+
+    function isValidFuneralServiceRequestRequesterCancel() {
+      return isSignedIn() &&
+        request.auth.uid == resource.data.requesterId &&
+        resource.data.status == "pending_shop_acceptance" &&
+        request.resource.data.status == "cancelled_by_requester" &&
+        request.resource.data.requesterId == resource.data.requesterId &&
+        request.resource.data.shopId == resource.data.shopId &&
+        request.resource.data.shopName == resource.data.shopName &&
+        request.resource.data.get('shopContactNumber', null) == resource.data.get('shopContactNumber', null) &&
+        request.resource.data.get('shopAddress', null) == resource.data.get('shopAddress', null) &&
+        request.resource.data.cartId == resource.data.cartId &&
+        request.resource.data.productId == resource.data.productId &&
+        request.resource.data.productName == resource.data.productName &&
+        request.resource.data.get('productPrice', null) == resource.data.get('productPrice', null) &&
+        request.resource.data.get('productImageUrl', null) == resource.data.get('productImageUrl', null) &&
+        request.resource.data.get('variationName', null) == resource.data.get('variationName', null) &&
+        request.resource.data.get('requestType', null) == resource.data.get('requestType', null) &&
+        request.resource.data.get('customDesignNotes', null) == resource.data.get('customDesignNotes', null) &&
+        request.resource.data.get('memorialPhotoUrl', null) == resource.data.get('memorialPhotoUrl', null) &&
+        request.resource.data.get('referencePhotoUrl', null) == resource.data.get('referencePhotoUrl', null) &&
+        request.resource.data.deceasedFullName == resource.data.deceasedFullName &&
+        request.resource.data.deceasedDateOfBirth == resource.data.deceasedDateOfBirth &&
+        request.resource.data.deceasedAge == resource.data.deceasedAge &&
+        request.resource.data.tributeMessage == resource.data.tributeMessage &&
+        request.resource.data.familyCoordinatorName == resource.data.familyCoordinatorName &&
+        request.resource.data.wakeAddress == resource.data.wakeAddress &&
+        request.resource.data.pickupAddress == resource.data.pickupAddress &&
+        request.resource.data.contactNumber == resource.data.contactNumber &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt is timestamp &&
+        request.resource.data.cancelledAt is timestamp &&
+        request.resource.data.get('acceptedAt', null) == resource.data.get('acceptedAt', null) &&
+        request.resource.data.get('declinedAt', null) == resource.data.get('declinedAt', null) &&
+        request.resource.data.get('shopRespondedAt', null) == resource.data.get('shopRespondedAt', null) &&
+        request.resource.data.get('handledByShopId', null) == resource.data.get('handledByShopId', null);
+    }
+
     function isReadReceiptOrReactionUpdateOnly() {
       return request.resource.data.diff(resource.data).changedKeys().hasOnly(['readBy', 'reactions']);
     }
@@ -324,8 +509,19 @@ service cloud.firestore {
         request.auth.uid == userId &&
         hasValidFuneralProfileData();
       allow update: if isSignedIn() &&
-        (request.auth.uid == userId || isAdmin()) &&
-        hasValidFuneralProfileData();
+        (
+          (
+            request.auth.uid == userId &&
+            (
+              hasValidFuneralProfileData() ||
+              isOwnerFuneralShopRegistrationSubmission(userId)
+            )
+          ) ||
+          (
+            isAdmin() &&
+            hasValidFuneralProfileData()
+          )
+        );
       allow delete: if isSignedIn() && isAdmin();
     }
 
@@ -362,11 +558,37 @@ service cloud.firestore {
     match /funeral_service_requests/{requestId} {
       allow read: if canReadFuneralServiceRequest();
       allow create: if isSignedIn() && isValidFuneralServiceRequestCreate();
-      allow update: if isValidFuneralServiceRequestStatusUpdate() || isAdmin();
+      allow update: if
+        isValidFuneralServiceRequestStatusUpdate() ||
+        isValidFuneralServiceRequestRequesterEdit() ||
+        isValidFuneralServiceRequestRequesterCancel() ||
+        isAdmin();
       allow delete: if isSignedIn() && (
         request.auth.uid == resource.data.requesterId ||
         isAdmin()
       );
+    }
+
+    // Funeral shops collection
+    match /funeral_shops/{shopId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidFuneralShopCollectionRecord();
+      allow update: if isSignedIn() && (
+        (isFuneralShopOwnerByDoc() && isValidFuneralShopCollectionRecord()) ||
+        isAdmin()
+      );
+      allow delete: if isSignedIn() && (isFuneralShopOwnerByDoc() || isAdmin());
+    }
+
+    // Funeral items collection
+    match /funeral_items/{itemId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidFuneralItemCollectionRecord();
+      allow update: if isSignedIn() && (
+        (isFuneralItemOwnerByDoc() && isValidFuneralItemCollectionRecord()) ||
+        isAdmin()
+      );
+      allow delete: if isSignedIn() && (isFuneralItemOwnerByDoc() || isAdmin());
     }
 
     // Conversations

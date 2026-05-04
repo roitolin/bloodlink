@@ -31,8 +31,10 @@ export default function AdminDashboard({ navigation }: any) {
   const [loadingMetrics, setLoadingMetrics] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { showDialog, dialog } = useAppDialog();
-  const isBloodAdmin = role === "admin" || role === "blood_admin";
-  const isFuneralAdmin = role === "admin" || role === "funeral_admin";
+  const isRootAdmin = role === "super_admin" || role === "admin";
+  const isBloodAdmin = isRootAdmin || role === "blood_admin";
+  const isFuneralAdmin = isRootAdmin || role === "funeral_admin";
+  const canSeeCommsAndInsights = isRootAdmin || role === "blood_admin";
   const title = role === "blood_admin" ? "Blood Admin" : role === "funeral_admin" ? "Funeral Admin" : "Admin Dashboard";
   const subtitle =
     role === "blood_admin"
@@ -237,33 +239,37 @@ export default function AdminDashboard({ navigation }: any) {
         </Card.Actions>
       </Card>
 
-      <Card style={styles.actionCard} mode="elevated">
-        <Card.Title title="Analytics & Monitoring" />
-        <Card.Content>
-          <Text style={styles.cardText}>
-            Check donation trends, activity metrics, and engagement insights.
-          </Text>
-        </Card.Content>
-        <Card.Actions>
-          <Button mode="outlined" onPress={() => navigation.navigate("Analytics")}>
-            View Analytics
-          </Button>
-        </Card.Actions>
-      </Card>
+      {canSeeCommsAndInsights ? (
+        <Card style={styles.actionCard} mode="elevated">
+          <Card.Title title="Analytics & Monitoring" />
+          <Card.Content>
+            <Text style={styles.cardText}>
+              Check donation trends, activity metrics, and engagement insights.
+            </Text>
+          </Card.Content>
+          <Card.Actions>
+            <Button mode="outlined" onPress={() => navigation.navigate("Analytics")}>
+              View Analytics
+            </Button>
+          </Card.Actions>
+        </Card>
+      ) : null}
 
-      <Card style={styles.actionCard} mode="elevated">
-        <Card.Title title="Ratings & Feedback" />
-        <Card.Content>
-          <Text style={styles.cardText}>
-            Review user ratings, reply to feedback, and react to community comments.
-          </Text>
-        </Card.Content>
-        <Card.Actions>
-          <Button mode="outlined" onPress={() => navigation.navigate("Feedback")}>
-            Open Feedback Board
-          </Button>
-        </Card.Actions>
-      </Card>
+      {canSeeCommsAndInsights ? (
+        <Card style={styles.actionCard} mode="elevated">
+          <Card.Title title="Ratings & Feedback" />
+          <Card.Content>
+            <Text style={styles.cardText}>
+              Review user ratings, reply to feedback, and react to community comments.
+            </Text>
+          </Card.Content>
+          <Card.Actions>
+            <Button mode="outlined" onPress={() => navigation.navigate("Feedback")}>
+              Open Feedback Board
+            </Button>
+          </Card.Actions>
+        </Card>
+      ) : null}
 
       <View style={styles.logoutWrap}>
         <Button mode="contained" buttonColor="#c62828" onPress={handleLogout}>

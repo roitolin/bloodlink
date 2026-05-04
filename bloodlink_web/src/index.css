@@ -39,8 +39,7 @@ body {
   color: var(--ink);
 }
 
-.service-choice-shell,
-.funeral-landing-shell {
+.service-choice-shell {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -48,8 +47,7 @@ body {
   padding: 24px;
 }
 
-.service-choice-card,
-.funeral-landing-card {
+.service-choice-card {
   width: min(1100px, 100%);
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--line);
@@ -67,20 +65,14 @@ body {
   color: #9f4b59;
 }
 
-.funeral-kicker {
-  color: #475569;
-}
-
-.service-choice-card h1,
-.funeral-landing-card h1 {
+.service-choice-card h1 {
   margin-top: 10px;
   font-family: "Sora", sans-serif;
   font-size: clamp(2rem, 4vw, 3.2rem);
   line-height: 1.05;
 }
 
-.service-choice-card > p,
-.funeral-landing-copy {
+.service-choice-card > p {
   margin-top: 12px;
   color: var(--muted);
   line-height: 1.7;
@@ -99,6 +91,23 @@ body {
   border-radius: 20px;
   padding: 24px;
   background: #fff;
+}
+
+.service-choice-link-card {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.service-choice-link-card:hover,
+.service-choice-link-card:focus-visible {
+  transform: translateY(-3px);
+  border-color: #d8c4cb;
+  box-shadow: 0 18px 38px rgba(53, 26, 37, 0.1);
 }
 
 .service-choice-option h2 {
@@ -121,15 +130,19 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
 }
 
 .blood-option .service-choice-icon {
   background: #fff1f2;
+  color: #a61d31;
 }
 
 .funeral-option .service-choice-icon {
-  background: #f1f5f9;
+  background: #efe8dc;
+  color: #30463d;
 }
 
 .blood-option {
@@ -137,29 +150,525 @@ body {
 }
 
 .funeral-option {
-  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  background: linear-gradient(180deg, #f5efe7 0%, #ffffff 100%);
 }
 
-.service-choice-option .btn-link {
+.service-choice-cta {
   margin-top: 18px;
+  width: fit-content;
 }
 
-.funeral-landing-actions {
-  margin-top: 22px;
+.service-choice-cta-funeral {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid #d3c8b8;
+  background: linear-gradient(135deg, #e9dfcf, #f8f3eb);
+  color: #25342f;
+  font-weight: 700;
+  box-shadow: 0 10px 20px rgba(81, 66, 44, 0.12);
+}
+
+.web-welcome-card {
+  max-width: 760px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(221, 47, 53, 0.08), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(252, 247, 248, 0.96));
+}
+
+.web-welcome-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.web-welcome-primary,
+.web-welcome-secondary {
+  min-width: 180px;
+}
+
+.web-welcome-note {
+  margin-top: 22px;
+  padding: 18px 20px;
+  border: 1px solid #eadfe3;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.web-welcome-note strong {
+  display: block;
+  font-family: "Sora", sans-serif;
+  font-size: 0.98rem;
+  color: #1f2937;
+}
+
+.web-welcome-note span {
+  display: block;
+  margin-top: 8px;
+  color: #5b6777;
+  line-height: 1.65;
+}
+
+.funeral-page-shell {
+  min-height: 100vh;
+  padding: 14px 0 28px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(195, 158, 115, 0.22), transparent 28%),
+    radial-gradient(circle at 100% 10%, rgba(61, 89, 78, 0.16), transparent 24%),
+    linear-gradient(180deg, #f7f2ea 0%, #f0e9df 54%, #ebe4db 100%);
+}
+
+.funeral-topbar,
+.funeral-page-main,
+.funeral-footer {
+  width: min(1320px, calc(100% - 1.2rem));
+  margin: 0 auto;
+}
+
+.funeral-topbar {
+  position: sticky;
+  top: 10px;
+  z-index: 30;
+  min-height: 78px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+  padding: 0 24px;
+  border: 1px solid rgba(104, 83, 55, 0.16);
+  border-radius: 22px;
+  background: rgba(250, 246, 239, 0.84);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 40px rgba(70, 49, 29, 0.08);
+}
+
+.funeral-brand {
+  gap: 12px;
+}
+
+.funeral-brand-copy {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.funeral-brand-copy strong {
+  font-family: "Sora", sans-serif;
+  font-size: 0.98rem;
+}
+
+.funeral-brand-copy span {
+  font-size: 0.78rem;
+  color: #5f6b67;
+}
+
+.funeral-topnav {
+  display: inline-flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.funeral-topnav a {
+  color: #485651;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.funeral-top-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.funeral-back-btn {
-  border: 1px solid #d8dee7;
-  color: #334155;
-  background: #fff;
+.funeral-text-link {
+  color: #475651;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.funeral-primary-btn,
+.funeral-outline-btn {
+  min-height: 42px;
+  border-radius: 999px;
+  padding: 0 18px;
+  font-weight: 800;
+  border: 1px solid transparent;
+}
+
+.funeral-primary-btn {
+  color: #fff;
+  background: linear-gradient(140deg, #395247, #20322c);
+  box-shadow: 0 14px 24px rgba(39, 60, 53, 0.24);
+}
+
+.funeral-outline-btn {
+  color: #23312c;
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(100, 84, 60, 0.2);
+}
+
+.funeral-page-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 14px;
+}
+
+.funeral-hero,
+.funeral-section,
+.funeral-panel-band,
+.funeral-footer {
+  border: 1px solid rgba(104, 83, 55, 0.13);
+  box-shadow: 0 18px 45px rgba(81, 62, 39, 0.08);
+}
+
+.funeral-hero {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 28px;
+  align-items: center;
+  padding: clamp(28px, 4vw, 56px);
+  border-radius: 34px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(244, 236, 226, 0.9));
+}
+
+.funeral-eyebrow {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #876846;
+}
+
+.funeral-hero-copy h1,
+.funeral-section-head h2,
+.funeral-process-intro h2,
+.funeral-panel h2,
+.funeral-footer-copy h3 {
+  margin-top: 12px;
+  font-family: "Sora", sans-serif;
+  line-height: 1.04;
+}
+
+.funeral-hero-copy h1 {
+  font-size: clamp(2.4rem, 5vw, 4.7rem);
+  max-width: 12ch;
+}
+
+.funeral-hero-sub,
+.funeral-section-head p,
+.funeral-process-intro p,
+.funeral-panel p,
+.funeral-footer-copy p {
+  margin-top: 14px;
+  color: #586663;
+  line-height: 1.75;
+}
+
+.funeral-hero-sub {
+  max-width: 640px;
+  font-size: 1.02rem;
+}
+
+.funeral-hero-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.funeral-hero-pills span {
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(113, 91, 62, 0.14);
+  color: #31423b;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.funeral-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.funeral-hero-visual {
+  position: relative;
+  min-height: 420px;
+  border-radius: 30px;
+  overflow: hidden;
+  border: 1px solid rgba(116, 92, 63, 0.14);
+  background:
+    linear-gradient(160deg, rgba(63, 84, 75, 0.96), rgba(36, 49, 45, 0.96)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+}
+
+.funeral-hero-glow {
+  position: absolute;
+  top: -70px;
+  right: -20px;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0));
+}
+
+.funeral-showcase-card {
+  position: absolute;
+  border-radius: 24px;
+  padding: 22px;
+  background: rgba(248, 244, 238, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 18px 28px rgba(15, 24, 20, 0.18);
+  backdrop-filter: blur(10px);
+}
+
+.funeral-showcase-card-main {
+  top: 26px;
+  left: 26px;
+  width: min(330px, calc(100% - 52px));
+}
+
+.funeral-showcase-card-main h2 {
+  margin-top: 10px;
+  font-family: "Sora", sans-serif;
+  font-size: clamp(1.55rem, 2.5vw, 2rem);
+  line-height: 1.15;
+  color: #21312d;
+}
+
+.funeral-showcase-card-main p,
+.funeral-showcase-card-floating p {
+  margin-top: 10px;
+  color: #5b6662;
+  line-height: 1.65;
+}
+
+.funeral-card-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6f5437;
+}
+
+.funeral-showcase-card-floating {
+  right: 26px;
+  bottom: 106px;
+  width: min(240px, calc(100% - 52px));
+}
+
+.funeral-showcase-card-floating strong {
+  display: block;
+  margin-top: 10px;
+  font-family: "Sora", sans-serif;
+  font-size: 1.2rem;
+  color: #22312d;
+}
+
+.funeral-mini-grid {
+  position: absolute;
+  left: 26px;
+  right: 26px;
+  bottom: 26px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.funeral-mini-card {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.funeral-mini-card span {
+  display: block;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.funeral-mini-card strong {
+  display: block;
+  margin-top: 6px;
+  font-family: "Sora", sans-serif;
+  font-size: 1.12rem;
+}
+
+.funeral-section {
+  padding: clamp(24px, 3vw, 42px);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.funeral-section-head {
+  max-width: 780px;
+}
+
+.funeral-highlight-grid,
+.funeral-step-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.funeral-highlight-card,
+.funeral-step-card {
+  border-radius: 24px;
+  padding: 24px;
+  border: 1px solid rgba(120, 96, 65, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(245, 238, 228, 0.8));
+}
+
+.funeral-highlight-kicker {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #856547;
+}
+
+.funeral-highlight-card h3,
+.funeral-step-card h3 {
+  margin-top: 14px;
+  font-family: "Sora", sans-serif;
+  font-size: 1.28rem;
+  line-height: 1.25;
+}
+
+.funeral-highlight-card p,
+.funeral-step-card p {
+  margin-top: 12px;
+  color: #5a6662;
+  line-height: 1.7;
+}
+
+.funeral-process-section {
+  background:
+    linear-gradient(180deg, rgba(246, 240, 231, 0.84), rgba(255, 255, 255, 0.88));
+}
+
+.funeral-process-intro {
+  max-width: 760px;
+}
+
+.funeral-step-card {
+  position: relative;
+  padding-top: 64px;
+}
+
+.funeral-step-index {
+  position: absolute;
+  top: 22px;
+  left: 24px;
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #2b3d37;
+  opacity: 0.72;
+}
+
+.funeral-panel-band {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 16px;
+  border: 0;
+  box-shadow: none;
+}
+
+.funeral-panel {
+  padding: clamp(24px, 3vw, 40px);
+  border-radius: 30px;
+}
+
+.funeral-panel-dark {
+  background: linear-gradient(145deg, #2a3b35, #18231f);
+  color: #f8f3eb;
+}
+
+.funeral-panel-dark .funeral-eyebrow,
+.funeral-panel-dark p {
+  color: rgba(248, 243, 235, 0.8);
+}
+
+.funeral-panel-light {
+  border: 1px solid rgba(119, 97, 67, 0.14);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.funeral-quick-links {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.funeral-quick-link {
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(119, 97, 67, 0.14);
+  background: #fbfaf8;
+  color: #22312d;
+  font-weight: 700;
+}
+
+.funeral-footer {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 18px;
+  padding: clamp(24px, 3vw, 40px);
+  margin-top: 24px;
+  border-radius: 30px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(245, 238, 227, 0.86));
+}
+
+.funeral-footer-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.funeral-contact-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 130px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(119, 97, 67, 0.13);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.funeral-contact-card span {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #866447;
+}
+
+.funeral-contact-card strong {
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  line-height: 1.3;
 }
 
 @media (max-width: 760px) {
-  .service-choice-card,
-  .funeral-landing-card {
+  .service-choice-card {
     padding: 22px;
   }
 
@@ -169,6 +678,96 @@ body {
 
   .service-choice-option p {
     min-height: 0;
+  }
+}
+
+@media (max-width: 1080px) {
+  .funeral-topbar {
+    grid-template-columns: auto auto;
+    justify-content: space-between;
+  }
+
+  .funeral-topnav {
+    display: none;
+  }
+
+  .funeral-hero,
+  .funeral-footer,
+  .funeral-panel-band {
+    grid-template-columns: 1fr;
+  }
+
+  .funeral-highlight-grid,
+  .funeral-step-grid,
+  .funeral-footer-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .funeral-page-shell {
+    padding-top: 10px;
+  }
+
+  .funeral-topbar,
+  .funeral-page-main,
+  .funeral-footer {
+    width: min(1320px, calc(100% - 0.8rem));
+  }
+
+  .funeral-topbar {
+    grid-template-columns: 1fr;
+    justify-items: start;
+    padding: 16px;
+  }
+
+  .funeral-top-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .funeral-hero,
+  .funeral-section,
+  .funeral-panel,
+  .funeral-footer {
+    padding: 22px;
+    border-radius: 24px;
+  }
+
+  .funeral-hero-copy h1 {
+    max-width: none;
+  }
+
+  .funeral-hero-visual {
+    min-height: 380px;
+  }
+
+  .funeral-showcase-card-main,
+  .funeral-showcase-card-floating {
+    width: auto;
+    left: 18px;
+    right: 18px;
+  }
+
+  .funeral-showcase-card-main {
+    top: 18px;
+  }
+
+  .funeral-showcase-card-floating {
+    bottom: 114px;
+  }
+
+  .funeral-mini-grid,
+  .funeral-highlight-grid,
+  .funeral-step-grid,
+  .funeral-footer-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .funeral-mini-grid {
+    left: 18px;
+    right: 18px;
+    bottom: 18px;
   }
 }
 
@@ -1440,6 +2039,735 @@ main {
   max-width: 44ch;
   color: #b7c8d8;
   line-height: 1.72;
+}
+
+.funeral-store-shell {
+  min-height: 100vh;
+  padding: 16px 0 28px;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(195, 158, 115, 0.2), transparent 26%),
+    radial-gradient(circle at 100% 16%, rgba(39, 65, 58, 0.14), transparent 24%),
+    linear-gradient(180deg, #f5efe7 0%, #efe7dd 54%, #e8dfd5 100%);
+  color: #20312d;
+}
+
+.funeral-store-topbar,
+.funeral-store-main,
+.funeral-store-footer {
+  width: min(1320px, calc(100% - 1rem));
+  margin: 0 auto;
+}
+
+.funeral-store-topbar {
+  position: sticky;
+  top: 10px;
+  z-index: 30;
+  min-height: 78px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+  padding: 0 24px;
+  border: 1px solid rgba(104, 83, 55, 0.16);
+  border-radius: 24px;
+  background: rgba(250, 246, 239, 0.82);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 40px rgba(70, 49, 29, 0.08);
+}
+
+.funeral-store-brand {
+  gap: 12px;
+}
+
+.funeral-store-brand-copy {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.08;
+}
+
+.funeral-store-brand-copy strong {
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  color: #1f302c;
+}
+
+.funeral-store-brand-copy span {
+  color: #66736e;
+  font-size: 0.78rem;
+}
+
+.funeral-store-nav {
+  display: inline-flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.funeral-store-nav a,
+.funeral-store-text-link {
+  color: #485651;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.funeral-store-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.funeral-store-primary-btn,
+.funeral-store-outline-btn {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-weight: 800;
+}
+
+.funeral-store-primary-btn {
+  color: #fff;
+  background: linear-gradient(145deg, #374d44, #1d2c28);
+  box-shadow: 0 14px 24px rgba(39, 60, 53, 0.24);
+}
+
+.funeral-store-outline-btn {
+  color: #22312d;
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(100, 84, 60, 0.22);
+}
+
+.funeral-store-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 14px;
+}
+
+.funeral-store-hero,
+.funeral-store-section,
+.funeral-store-support,
+.funeral-store-footer {
+  border: 1px solid rgba(104, 83, 55, 0.13);
+  box-shadow: 0 18px 45px rgba(81, 62, 39, 0.08);
+}
+
+.funeral-store-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+  gap: 26px;
+  align-items: start;
+  padding: clamp(24px, 4vw, 52px);
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 84% 18%, rgba(255, 255, 255, 0.46), transparent 20%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(244, 236, 226, 0.9));
+}
+
+.funeral-store-kicker {
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #866447;
+}
+
+.funeral-store-hero-copy h1,
+.funeral-store-section-head h2,
+.funeral-store-support-card h2,
+.funeral-store-footer h3,
+.funeral-store-spotlight-card h2,
+.funeral-store-trust-card h3 {
+  margin-top: 12px;
+  font-family: "Sora", sans-serif;
+  line-height: 1.06;
+}
+
+.funeral-store-hero-copy h1 {
+  font-size: clamp(2.3rem, 5vw, 4.5rem);
+  max-width: 11ch;
+}
+
+.funeral-store-hero-sub,
+.funeral-store-section-head p,
+.funeral-store-support-card p,
+.funeral-store-footer > div > p,
+.funeral-store-spotlight-card p,
+.funeral-store-trust-card p {
+  margin-top: 14px;
+  color: #596763;
+  line-height: 1.72;
+}
+
+.funeral-store-benefits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.funeral-store-benefits span,
+.funeral-store-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(113, 91, 62, 0.14);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 9px 14px;
+  color: #31423b;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.funeral-store-hero-actions,
+.funeral-store-support-actions,
+.funeral-store-search-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.funeral-store-hero-actions {
+  margin-top: 28px;
+}
+
+.funeral-store-hero-meta {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.funeral-store-stat-card {
+  border-radius: 22px;
+  padding: 18px;
+  border: 1px solid rgba(118, 95, 66, 0.14);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.funeral-store-stat-card span,
+.funeral-store-results-bar span,
+.funeral-store-shop-topline span,
+.funeral-store-product-topline span,
+.funeral-store-footer-card span,
+.funeral-store-modal-shop span,
+.funeral-store-search-actions span {
+  display: block;
+  color: #69746f;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.funeral-store-stat-card strong,
+.funeral-store-results-bar strong,
+.funeral-store-shop-topline strong,
+.funeral-store-product-topline strong,
+.funeral-store-footer-card strong,
+.funeral-store-modal-shop strong {
+  display: block;
+  margin-top: 6px;
+  font-family: "Sora", sans-serif;
+}
+
+.funeral-store-hero-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.funeral-store-status-banner,
+.funeral-store-search-card,
+.funeral-store-spotlight-card,
+.funeral-store-trust-card,
+.funeral-store-shop-card,
+.funeral-store-product-card,
+.funeral-store-support-card,
+.funeral-store-footer-card,
+.funeral-store-modal-card {
+  border-radius: 28px;
+}
+
+.funeral-store-status-banner,
+.funeral-store-search-card,
+.funeral-store-spotlight-card,
+.funeral-store-support-card,
+.funeral-store-footer-card {
+  border: 1px solid rgba(117, 95, 67, 0.14);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.funeral-store-status-banner,
+.funeral-store-spotlight-card {
+  padding: 18px 20px;
+}
+
+.funeral-store-status-banner strong,
+.funeral-store-spotlight-card strong {
+  display: block;
+  margin-top: 8px;
+  font-family: "Sora", sans-serif;
+  line-height: 1.4;
+}
+
+.funeral-store-search-card {
+  padding: 20px;
+}
+
+.funeral-store-search-card label {
+  display: block;
+  color: #44504b;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.funeral-store-search-card input,
+.funeral-store-search-card select {
+  width: 100%;
+  min-height: 50px;
+  margin-top: 8px;
+  border: 1px solid #d7cdc1;
+  border-radius: 16px;
+  background: #fffdfa;
+  color: #1f2a27;
+  padding: 0 14px;
+}
+
+.funeral-store-select-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.funeral-store-search-actions {
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.funeral-store-search-reset,
+.funeral-store-shop-link,
+.funeral-store-product-button,
+.funeral-store-modal-close {
+  cursor: pointer;
+  font: inherit;
+}
+
+.funeral-store-search-reset,
+.funeral-store-shop-link,
+.funeral-store-product-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(102, 84, 60, 0.2);
+  background: #fbf8f2;
+  color: #22312d;
+  font-weight: 800;
+}
+
+.funeral-store-spotlight-card {
+  background: linear-gradient(145deg, #2e423b, #1a2824);
+  color: #f7f2ea;
+}
+
+.funeral-store-spotlight-card p,
+.funeral-store-spotlight-card .funeral-store-kicker,
+.funeral-store-spotlight-meta span {
+  color: rgba(247, 242, 234, 0.78);
+}
+
+.funeral-store-spotlight-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-end;
+  margin-top: 18px;
+}
+
+.funeral-store-section {
+  padding: clamp(24px, 3vw, 42px);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.funeral-store-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.funeral-store-section-head > div {
+  max-width: 700px;
+}
+
+.funeral-store-trust-grid,
+.funeral-store-shop-grid,
+.funeral-store-product-grid,
+.funeral-store-footer-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.funeral-store-trust-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.funeral-store-trust-card {
+  padding: 22px;
+  border: 1px solid rgba(120, 96, 65, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 236, 226, 0.8));
+}
+
+.funeral-store-shop-grid,
+.funeral-store-product-grid {
+  margin-top: 24px;
+}
+
+.funeral-store-shop-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.funeral-store-shop-card,
+.funeral-store-product-card {
+  overflow: hidden;
+  border: 1px solid rgba(120, 96, 65, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 233, 0.88));
+  box-shadow: 0 18px 30px rgba(44, 33, 20, 0.06);
+}
+
+.funeral-store-shop-image,
+.funeral-store-product-image,
+.funeral-store-modal-image {
+  width: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.funeral-store-shop-image {
+  height: 220px;
+}
+
+.funeral-store-product-image {
+  height: 210px;
+}
+
+.funeral-store-modal-image {
+  height: 280px;
+  border-radius: 22px;
+}
+
+.funeral-store-shop-placeholder,
+.funeral-store-product-placeholder {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 24% 20%, rgba(255, 255, 255, 0.26), transparent 16%),
+    linear-gradient(145deg, #3b5248, #24332f);
+  color: #f3ece4;
+  text-align: center;
+}
+
+.funeral-store-shop-placeholder span {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+  font-family: "Sora", sans-serif;
+  font-size: 1.4rem;
+}
+
+.funeral-store-product-placeholder span {
+  max-width: 11ch;
+  font-family: "Sora", sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.funeral-store-shop-body,
+.funeral-store-product-body,
+.funeral-store-modal-body {
+  padding: 20px;
+}
+
+.funeral-store-shop-body h3,
+.funeral-store-product-body h3,
+.funeral-store-modal-body h3 {
+  margin-top: 12px;
+  font-family: "Sora", sans-serif;
+  line-height: 1.2;
+}
+
+.funeral-store-shop-body p,
+.funeral-store-product-body p,
+.funeral-store-modal-body p {
+  margin-top: 10px;
+  color: #5c6864;
+  line-height: 1.66;
+}
+
+.funeral-store-shop-meta {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.funeral-store-shop-link {
+  margin-top: 18px;
+}
+
+.funeral-store-product-section {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.5), transparent 18%),
+    rgba(255, 255, 255, 0.88);
+}
+
+.funeral-store-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.funeral-store-chip {
+  cursor: pointer;
+}
+
+.funeral-store-chip.active {
+  background: linear-gradient(145deg, #344a42, #1d2c28);
+  color: #fff;
+  border-color: transparent;
+}
+
+.funeral-store-results-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(120, 96, 65, 0.12);
+  background: rgba(250, 247, 241, 0.9);
+}
+
+.funeral-store-product-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.funeral-store-product-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.funeral-store-price {
+  display: block;
+  font-family: "Sora", sans-serif;
+  font-size: 1.18rem;
+  color: #22312d;
+}
+
+.funeral-store-variation-note {
+  margin-top: 14px;
+  color: #6d5840;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.funeral-store-feedback {
+  margin-top: 18px;
+  color: #54615d;
+  line-height: 1.65;
+}
+
+.funeral-store-feedback-error {
+  color: #9e2830;
+}
+
+.funeral-store-support {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 16px;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+
+.funeral-store-support-card {
+  padding: clamp(24px, 3vw, 40px);
+}
+
+.funeral-store-support-dark {
+  background: linear-gradient(145deg, #293a35, #16211e);
+  color: #f8f3eb;
+}
+
+.funeral-store-support-dark .funeral-store-kicker,
+.funeral-store-support-dark p {
+  color: rgba(248, 243, 235, 0.8);
+}
+
+.funeral-store-footer {
+  display: grid;
+  grid-template-columns: 0.92fr 1.08fr;
+  gap: 18px;
+  padding: clamp(24px, 3vw, 40px);
+  margin-top: 24px;
+  border-radius: 30px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(245, 238, 227, 0.86));
+}
+
+.funeral-store-footer-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.funeral-store-footer-card {
+  min-height: 128px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.funeral-store-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(18, 26, 23, 0.58);
+  backdrop-filter: blur(8px);
+}
+
+.funeral-store-modal-card {
+  position: relative;
+  width: min(920px, 100%);
+  display: grid;
+  grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.05fr);
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid rgba(120, 96, 65, 0.12);
+  background: linear-gradient(180deg, #fffdfa 0%, #f7f0e7 100%);
+  box-shadow: 0 28px 60px rgba(18, 22, 20, 0.22);
+}
+
+.funeral-store-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(111, 91, 65, 0.2);
+  background: rgba(255, 255, 255, 0.9);
+  color: #22312d;
+  font-weight: 800;
+}
+
+.funeral-store-modal-shop {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(120, 96, 65, 0.12);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.funeral-store-modal-shop p:last-child {
+  margin-top: 6px;
+}
+
+#funeral-store-home,
+#funeral-store-shops,
+#funeral-store-products,
+#funeral-store-help {
+  scroll-margin-top: 96px;
+}
+
+@media (max-width: 1080px) {
+  .funeral-store-topbar {
+    grid-template-columns: auto auto;
+    justify-content: space-between;
+  }
+
+  .funeral-store-nav {
+    display: none;
+  }
+
+  .funeral-store-hero,
+  .funeral-store-support,
+  .funeral-store-footer,
+  .funeral-store-modal-card {
+    grid-template-columns: 1fr;
+  }
+
+  .funeral-store-trust-grid,
+  .funeral-store-shop-grid,
+  .funeral-store-product-grid,
+  .funeral-store-footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .funeral-store-shell {
+    padding-top: 10px;
+  }
+
+  .funeral-store-topbar,
+  .funeral-store-main,
+  .funeral-store-footer {
+    width: min(1320px, calc(100% - 0.8rem));
+  }
+
+  .funeral-store-topbar {
+    grid-template-columns: 1fr;
+    justify-items: start;
+    padding: 16px;
+  }
+
+  .funeral-store-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .funeral-store-hero,
+  .funeral-store-section,
+  .funeral-store-support-card,
+  .funeral-store-footer,
+  .funeral-store-modal-card {
+    padding: 22px;
+    border-radius: 24px;
+  }
+
+  .funeral-store-hero-copy h1 {
+    max-width: none;
+  }
+
+  .funeral-store-hero-meta,
+  .funeral-store-select-grid,
+  .funeral-store-trust-grid,
+  .funeral-store-shop-grid,
+  .funeral-store-product-grid,
+  .funeral-store-footer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .funeral-store-search-actions,
+  .funeral-store-results-bar,
+  .funeral-store-product-footer,
+  .funeral-store-spotlight-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .footer-contact-cards {
@@ -4477,6 +5805,15 @@ select:focus-visible {
   box-shadow: 0 8px 18px rgba(154, 29, 38, 0.16);
 }
 
+.member-photo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  line-height: 1;
+  color: #9a1d26;
+}
+
 .member-tile strong {
   font-size: 0.84rem;
   color: #1f2937;
@@ -4596,6 +5933,15 @@ select:focus-visible {
 
 .about-member-banner-photo {
   max-height: 420px;
+}
+
+.about-member-banner-photo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8rem;
+  line-height: 1;
+  color: #9a1d26;
 }
 
 @media (max-width: 560px) {

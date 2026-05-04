@@ -1,6 +1,6 @@
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
 import { appServices } from "@/config/appServices";
 import { useCallback, useState } from "react";
@@ -130,7 +130,7 @@ export default function ServiceHubScreen({ navigation }: any) {
           <View style={[styles.serviceCard, styles.funeralCard]}>
             <View style={styles.cardHeaderRow}>
               <View style={[styles.iconWrap, styles.funeralIconWrap]}>
-                <Ionicons name={appServices.funeral.icon as any} size={24} color={appServices.funeral.accent} />
+                <MaterialCommunityIcons name={appServices.funeral.icon as any} size={24} color={appServices.funeral.accent} />
               </View>
               <Pressable style={[styles.openPill, styles.funeralOpenPill]} onPress={() => navigation.navigate("FuneralApp")}>
                 <Text style={[styles.openPillText, { color: appServices.funeral.accent }]}>Open</Text>

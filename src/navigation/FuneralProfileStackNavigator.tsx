@@ -23,7 +23,22 @@ const Stack = createNativeStackNavigator();
 
 export default function FuneralProfileStackNavigator() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: "#f8f6f2",
+        },
+        headerTintColor: "#22312d",
+        headerShadowVisible: false,
+        headerTitleStyle: {
+          color: "#22312d",
+          fontWeight: "700",
+        },
+        contentStyle: {
+          backgroundColor: "#eef1ec",
+        },
+      }}
+    >
       <Stack.Screen name="ProfileMain" component={FuneralProfileScreen} options={{ title: "Profile" }} />
       <Stack.Screen name="ShopInformation" component={FuneralShopInformationScreen} options={{ title: "Shop Information" }} />
       <Stack.Screen name="BusinessInformation" component={FuneralBusinessInformationScreen} options={{ title: "Business Information" }} />

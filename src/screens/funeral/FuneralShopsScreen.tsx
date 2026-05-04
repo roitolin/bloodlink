@@ -73,19 +73,19 @@ export default function FuneralShopsScreen({ navigation }: any) {
           <Text style={styles.heroSubtitle}>Once a funeral shop is verified, it will appear here automatically for families to browse.</Text>
 
           <View style={styles.heroPill}>
-            <Ionicons name="storefront-outline" size={16} color="#171717" />
+            <Ionicons name="storefront-outline" size={16} color="#22312d" />
             <Text style={styles.heroPillText}>{shopCountLabel}</Text>
           </View>
         </View>
 
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color="#171717" />
+            <ActivityIndicator size="large" color="#22312d" />
             <Text style={styles.loadingText}>Loading verified shops...</Text>
           </View>
         ) : shops.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Ionicons name="storefront-outline" size={28} color="#78716c" />
+            <Ionicons name="storefront-outline" size={28} color="#86908a" />
             <Text style={styles.emptyTitle}>No verified shops yet</Text>
             <Text style={styles.emptyText}>Verified funeral shops will show up here automatically as soon as admins approve them.</Text>
           </View>
@@ -96,7 +96,7 @@ export default function FuneralShopsScreen({ navigation }: any) {
                 <Image source={{ uri: shop.shopImageUrl }} style={styles.shopImage} resizeMode="cover" />
               ) : (
                 <View style={styles.shopImageFallback}>
-                  <Ionicons name="storefront-outline" size={28} color="#171717" />
+                  <Ionicons name="storefront-outline" size={28} color="#22312d" />
                 </View>
               )}
 
@@ -121,7 +121,7 @@ export default function FuneralShopsScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f8f7f3",
+    backgroundColor: "#eef1ec",
   },
   content: {
     padding: 18,
@@ -130,24 +130,24 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     borderRadius: 28,
-    backgroundColor: "#facc15",
+    backgroundColor: "#d6e2d2",
     padding: 20,
   },
   heroEyebrow: {
-    color: "#92400e",
+    color: "#86654a",
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.4,
   },
   heroTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 28,
     lineHeight: 32,
     fontWeight: "900",
     marginTop: 6,
   },
   heroSubtitle: {
-    color: "#44403c",
+    color: "#53615d",
     fontSize: 14,
     lineHeight: 21,
     marginTop: 8,
@@ -158,13 +158,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.5)",
+    backgroundColor: "rgba(255,255,255,0.68)",
     paddingHorizontal: 12,
     paddingVertical: 9,
     marginTop: 16,
   },
   heroPillText: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 12,
     fontWeight: "900",
   },
@@ -175,27 +175,27 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
   },
   loadingText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 14,
     fontWeight: "700",
   },
   emptyCard: {
     borderRadius: 24,
-    backgroundColor: "#fffaf5",
+    backgroundColor: "#f8f6f2",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     alignItems: "center",
     paddingHorizontal: 18,
     paddingVertical: 28,
   },
   emptyTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 18,
     fontWeight: "900",
     marginTop: 12,
   },
   emptyText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
@@ -203,9 +203,9 @@ const styles = StyleSheet.create({
   },
   shopCard: {
     borderRadius: 24,
-    backgroundColor: "#fffaf5",
+    backgroundColor: "#f8f6f2",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     padding: 14,
   },
   shopImage: {
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 180,
     borderRadius: 18,
-    backgroundColor: "#fff8d8",
+    backgroundColor: "#ebf1e8",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -226,17 +226,17 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   shopName: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 20,
     fontWeight: "900",
   },
   shopMeta: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 19,
   },
   shopBusiness: {
-    color: "#a16207",
+    color: "#8b7255",
     fontSize: 12,
     fontWeight: "800",
     marginTop: 4,
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   shopButton: {
     minHeight: 44,
     borderRadius: 14,
-    backgroundColor: "#171717",
+    backgroundColor: "#22312d",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 14,

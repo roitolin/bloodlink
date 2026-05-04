@@ -179,7 +179,10 @@ export default function FuneralCheckoutScreen({ navigation, route }: any) {
         productPrice: cartItem.price,
         productImageUrl: cartItem.imageUrl || null,
         variationName: cartItem.variationName || null,
+        requestType: "catalog_product",
+        customDesignNotes: null,
         memorialPhotoUrl,
+        referencePhotoUrl: null,
         deceasedFullName: safeDeceasedFullName,
         deceasedDateOfBirth: dateOfBirth.toISOString(),
         deceasedAge: age,
@@ -189,24 +192,33 @@ export default function FuneralCheckoutScreen({ navigation, route }: any) {
         pickupAddress: safePickupAddress,
         contactNumber: safeContactNumber,
         status: "pending_shop_acceptance",
+        acceptedAt: null,
+        declinedAt: null,
+        cancelledAt: null,
+        shopRespondedAt: null,
+        handledByShopId: null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
-      await addDoc(collection(db, "notifications"), {
-        userId: cartItem.shopId,
-        type: "funeral_request_pending",
-        title: "New Funeral Service Request",
-        body: `${safeFamilyCoordinatorName} sent a service request for ${safeDeceasedFullName}.`,
-        data: {
-          requestId: requestRef.id,
-          requesterId: user.uid,
-          shopId: cartItem.shopId,
-          productId: cartItem.productId,
-        },
-        read: false,
-        createdAt: serverTimestamp(),
-      });
+      try {
+        await addDoc(collection(db, "notifications"), {
+          userId: cartItem.shopId,
+          type: "funeral_request_pending",
+          title: "New Funeral Service Request",
+          body: `${safeFamilyCoordinatorName} sent a service request for ${safeDeceasedFullName}.`,
+          data: {
+            requestId: requestRef.id,
+            requesterId: user.uid,
+            shopId: cartItem.shopId,
+            productId: cartItem.productId,
+          },
+          read: false,
+          createdAt: serverTimestamp(),
+        });
+      } catch (notificationError) {
+        console.warn("Failed to create funeral request notification:", notificationError);
+      }
 
       await removeFuneralCartItem(cartItem.cartId);
       setSuccessState({
@@ -263,7 +275,7 @@ export default function FuneralCheckoutScreen({ navigation, route }: any) {
       <SafeAreaView style={styles.screen}>
         <View style={styles.successWrap}>
           <View style={styles.successIcon}>
-            <Ionicons name="time-outline" size={34} color="#92400e" />
+            <Ionicons name="time-outline" size={34} color="#86654a" />
           </View>
           <Text style={styles.successTitle}>Request Sent</Text>
           <Text style={styles.successText}>
@@ -296,7 +308,7 @@ export default function FuneralCheckoutScreen({ navigation, route }: any) {
             <Image source={{ uri: cartItem.imageUrl }} style={styles.summaryImage} resizeMode="cover" />
           ) : (
             <View style={styles.summaryFallback}>
-              <Ionicons name="cube-outline" size={28} color="#475569" />
+              <Ionicons name="cube-outline" size={28} color="#66746f" />
             </View>
           )}
 
@@ -312,12 +324,12 @@ export default function FuneralCheckoutScreen({ navigation, route }: any) {
           <Text style={styles.sectionTitle}>Photo of Your Loved One for Display</Text>
           <TouchableOpacity style={styles.photoPicker} onPress={() => void pickMemorialPhoto()} disabled={uploadingPhoto}>
             {uploadingPhoto ? (
-              <ActivityIndicator size="small" color="#171717" />
+              <ActivityIndicator size="small" color="#22312d" />
             ) : memorialPhotoUrl ? (
               <Image source={{ uri: memorialPhotoUrl }} style={styles.photoPreview} resizeMode="cover" />
             ) : (
               <View style={styles.photoPlaceholder}>
-                <Ionicons name="image-outline" size={26} color="#78716c" />
+                <Ionicons name="image-outline" size={26} color="#86908a" />
                 <Text style={styles.photoPlaceholderText}>Add photo</Text>
               </View>
             )}
@@ -336,7 +348,7 @@ export default function FuneralCheckoutScreen({ navigation, route }: any) {
           <Text style={styles.label}>Date of Birth</Text>
           <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
             <Text style={styles.dateButtonText}>{formatDateLabel(dateOfBirth)}</Text>
-            <Ionicons name="calendar-outline" size={18} color="#57534e" />
+            <Ionicons name="calendar-outline" size={18} color="#62706b" />
           </TouchableOpacity>
           {showDatePicker ? (
             <DateTimePicker
@@ -415,7 +427,7 @@ export default function FuneralCheckoutScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f8f7f3",
+    backgroundColor: "#eef1ec",
   },
   content: {
     padding: 18,
@@ -428,7 +440,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     padding: 12,
   },
   summaryImage: {
@@ -442,29 +454,29 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff8d8",
+    backgroundColor: "#ebf1e8",
   },
   summaryBody: {
     flex: 1,
   },
   summaryName: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 16,
     fontWeight: "900",
   },
   summaryShop: {
-    color: "#a16207",
+    color: "#8b7255",
     fontSize: 12,
     fontWeight: "800",
     marginTop: 4,
   },
   summaryVariation: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 12,
     marginTop: 4,
   },
   summaryNote: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 19,
     marginTop: 8,
@@ -473,11 +485,11 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     padding: 16,
   },
   sectionTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 16,
     fontWeight: "900",
     marginBottom: 12,
@@ -487,7 +499,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: "#d6d3d1",
+    borderColor: "#d2d7d1",
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
@@ -503,12 +515,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   photoPlaceholderText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     fontWeight: "700",
   },
   label: {
-    color: "#44403c",
+    color: "#53615d",
     fontSize: 13,
     fontWeight: "800",
     marginBottom: 8,
@@ -518,11 +530,11 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#d6d3d1",
+    borderColor: "#d2d7d1",
     backgroundColor: "#fcfcfb",
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: "#171717",
+    color: "#22312d",
     fontSize: 14,
   },
   multilineInput: {
@@ -533,7 +545,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#d6d3d1",
+    borderColor: "#d2d7d1",
     backgroundColor: "#fcfcfb",
     paddingHorizontal: 14,
     flexDirection: "row",
@@ -541,27 +553,27 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   dateButtonText: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 14,
   },
   readonlyField: {
     minHeight: 48,
     borderRadius: 14,
-    backgroundColor: "#f5f5f4",
+    backgroundColor: "#ece9e3",
     borderWidth: 1,
     borderColor: "#e7e5e4",
     justifyContent: "center",
     paddingHorizontal: 14,
   },
   readonlyValue: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 14,
     fontWeight: "700",
   },
   primaryButton: {
     minHeight: 52,
     borderRadius: 16,
-    backgroundColor: "#171717",
+    backgroundColor: "#22312d",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
@@ -577,19 +589,19 @@ const styles = StyleSheet.create({
   secondaryButton: {
     minHeight: 50,
     borderRadius: 16,
-    backgroundColor: "#f5f5f4",
+    backgroundColor: "#ece9e3",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
     width: "100%",
   },
   secondaryButtonText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 14,
     fontWeight: "900",
   },
   footerHint: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 12,
     lineHeight: 18,
     textAlign: "center",
@@ -610,23 +622,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#fef3c7",
   },
   successTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 24,
     fontWeight: "900",
   },
   successText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 14,
     lineHeight: 22,
     textAlign: "center",
   },
   successMeta: {
-    color: "#92400e",
+    color: "#86654a",
     fontSize: 12,
     fontWeight: "800",
   },
   condolenceText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
@@ -639,7 +651,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   emptyTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 20,
     fontWeight: "900",
   },

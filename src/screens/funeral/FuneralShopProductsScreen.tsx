@@ -101,13 +101,13 @@ export default function FuneralShopProductsScreen({ navigation, route }: any) {
       >
         <View style={styles.heroCard}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={18} color="#171717" />
+            <Ionicons name="arrow-back" size={18} color="#22312d" />
           </TouchableOpacity>
           <Text style={styles.heroEyebrow}>Shop Products</Text>
           <Text style={styles.heroTitle}>{shopName}</Text>
           <Text style={styles.heroSubtitle}>{shopAddress || "Verified funeral shop"}</Text>
           <View style={styles.heroPill}>
-            <Ionicons name="cube-outline" size={16} color="#171717" />
+            <Ionicons name="cube-outline" size={16} color="#22312d" />
             <Text style={styles.heroPillText}>{subtitle}</Text>
           </View>
           <TouchableOpacity
@@ -129,12 +129,12 @@ export default function FuneralShopProductsScreen({ navigation, route }: any) {
 
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color="#171717" />
+            <ActivityIndicator size="large" color="#22312d" />
             <Text style={styles.loadingText}>Loading shop products...</Text>
           </View>
         ) : products.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Ionicons name="cube-outline" size={28} color="#78716c" />
+            <Ionicons name="cube-outline" size={28} color="#86908a" />
             <Text style={styles.emptyTitle}>No products available</Text>
             <Text style={styles.emptyText}>This shop has not published visible products yet.</Text>
           </View>
@@ -146,7 +146,7 @@ export default function FuneralShopProductsScreen({ navigation, route }: any) {
                   <Image source={{ uri: getPrimaryProductImage(item) || "" }} style={styles.productImage} resizeMode="cover" />
                 ) : (
                   <View style={styles.productVisual}>
-                    <Ionicons name="cube-outline" size={44} color="#374151" />
+                    <Ionicons name="cube-outline" size={44} color="#4c5b57" />
                   </View>
                 )}
 
@@ -169,7 +169,7 @@ export default function FuneralShopProductsScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f8f7f3",
+    backgroundColor: "#eef1ec",
   },
   content: {
     padding: 18,
@@ -178,33 +178,33 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     borderRadius: 28,
-    backgroundColor: "#facc15",
+    backgroundColor: "#d6e2d2",
     padding: 20,
   },
   backButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.5)",
+    backgroundColor: "rgba(255,255,255,0.68)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
   },
   heroEyebrow: {
-    color: "#92400e",
+    color: "#86654a",
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.4,
   },
   heroTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 28,
     lineHeight: 32,
     fontWeight: "900",
     marginTop: 6,
   },
   heroSubtitle: {
-    color: "#44403c",
+    color: "#53615d",
     fontSize: 14,
     lineHeight: 21,
     marginTop: 8,
@@ -215,20 +215,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.5)",
+    backgroundColor: "rgba(255,255,255,0.68)",
     paddingHorizontal: 12,
     paddingVertical: 9,
     marginTop: 16,
   },
   heroPillText: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 12,
     fontWeight: "900",
   },
   customRequestButton: {
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: "#171717",
+    backgroundColor: "#22312d",
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
@@ -248,27 +248,27 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
   },
   loadingText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 14,
     fontWeight: "700",
   },
   emptyCard: {
     borderRadius: 24,
-    backgroundColor: "#fffaf5",
+    backgroundColor: "#f8f6f2",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     alignItems: "center",
     paddingHorizontal: 18,
     paddingVertical: 28,
   },
   emptyTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 18,
     fontWeight: "900",
     marginTop: 12,
   },
   emptyText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
   },
   productImage: {
     width: "100%",
@@ -300,18 +300,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
-    backgroundColor: "#fff8d8",
+    backgroundColor: "#ebf1e8",
   },
   cardFooter: {
     marginTop: 10,
   },
   price: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 18,
     fontWeight: "900",
   },
   cardTitle: {
-    color: "#3f3f46",
+    color: "#41514d",
     fontSize: 13,
     fontWeight: "700",
     marginTop: 8,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     minHeight: 34,
   },
   cardDescription: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 11,
     lineHeight: 16,
     minHeight: 32,

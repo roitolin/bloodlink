@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { FuneralLandingPage, LandingPage, LoginPage, RegisterPage, ServiceChoicePage, VerifyEmailPage } from '@/pages'
+import { FuneralLandingPage, LandingPage, LoginPage, RegisterPage, ServiceChoicePage, VerifyEmailPage, WebWelcomePage } from '@/pages'
 import {
   AboutUsPage,
   ContactSupportPage,
@@ -25,6 +25,7 @@ import {
   AdminDashboardPage,
   AdminDonorsPage,
   AdminFeedbackPage,
+  AdminFuneralItemsPage,
   AdminFuneralShopsPage,
   AdminLayout,
   AdminModerationPage,
@@ -41,7 +42,8 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<ServiceChoicePage />} />
+        <Route path="/" element={<WebWelcomePage />} />
+        <Route path="/services" element={<ServiceChoicePage />} />
         <Route path="/blood" element={<LandingPage />} />
         <Route path="/funeral" element={<FuneralLandingPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -78,6 +80,7 @@ function App() {
             </Route>
             <Route element={<AdminRoleGuard allowedRoles={['super_admin', 'admin', 'funeral_admin']} />}>
               <Route path="funeral-shops" element={<AdminFuneralShopsPage />} />
+              <Route path="funeral-items" element={<AdminFuneralItemsPage />} />
             </Route>
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="users/:id" element={<AdminUserDetailPage />} />

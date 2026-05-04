@@ -480,8 +480,8 @@ function LandingPage() {
         </nav>
 
         <div className="top-actions">
-          <Link to="/login" className="ghost-btn btn-link">Login</Link>
-          <Link to="/register" className="solid-btn btn-link">Register</Link>
+          <Link to="/services" className="ghost-btn btn-link">Open Hub</Link>
+          <Link to="/login?next=/app" className="solid-btn btn-link">Enter App</Link>
         </div>
       </header>
 
@@ -661,8 +661,8 @@ function LandingPage() {
                 <p>{availabilityStory.body}</p>
               </article>
               <div className="availability-cta-row">
-                <Link to="/login" className="ghost-btn btn-link">Login to Request Blood</Link>
-                <Link to="/register" className="solid-btn btn-link">Join as Donor</Link>
+                <Link to="/login?next=/app" className="ghost-btn btn-link">Enter App</Link>
+                <Link to="/services" className="solid-btn btn-link">Open Hub</Link>
               </div>
             </div>
           </div>

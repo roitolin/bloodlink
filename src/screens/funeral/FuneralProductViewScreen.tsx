@@ -106,7 +106,7 @@ function formatTimestamp(timestamp: any) {
 }
 
 const RATING_VALUES = [1, 2, 3, 4, 5];
-type VariationSheetMode = "browse" | "cart";
+type VariationSheetMode = "browse" | "cart" | "buy";
 type VariationPreviewState = {
   name: string;
   imageUrl?: string | null;
@@ -345,6 +345,27 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
     setCartConfirmVisible(true);
   };
 
+  const proceedToCheckout = () => {
+    if (!product.shopId) {
+      Alert.alert("Unavailable", "This product is missing its shop details.");
+      return;
+    }
+
+    navigation.navigate("FuneralCheckout", {
+      cartItem: {
+        cartId: `buy_now_${product.shopId}_${product.id}_${selectedVariationName || "standard"}_${Date.now()}`,
+        productId: product.id,
+        shopId: product.shopId,
+        shopName: product.shopName || "Verified Shop",
+        name: product.name,
+        price: String(product.price || ""),
+        imageUrl: selectedVariation?.imageUrl || gallery[0] || product.imageUrl || null,
+        variationName: selectedVariationName,
+        quantity: 1,
+      },
+    });
+  };
+
   const addToCart = async () => {
     if (!product.shopId) {
       Alert.alert("Unavailable", "This product is missing its shop details.");
@@ -379,6 +400,16 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
     confirmAddToCart();
   };
 
+  const handleBuyNow = () => {
+    if (variationCount > 0) {
+      setVariationSheetMode("buy");
+      setVariationsVisible(true);
+      return;
+    }
+
+    proceedToCheckout();
+  };
+
   const openVariationPreview = (variation: ProductVariation, index: number) => {
     setSelectedVariationName(variation.name || `Option ${index + 1}`);
     if (!variation.imageUrl) return;
@@ -397,22 +428,22 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
       >
         <View style={styles.topBar}>
           <TouchableOpacity style={styles.topIconButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={22} color="#171717" />
+            <Ionicons name="arrow-back" size={22} color="#22312d" />
           </TouchableOpacity>
 
           <TouchableOpacity activeOpacity={0.9} style={styles.searchPill} onPress={() => navigation.navigate("FuneralTabs", { screen: "Home" })}>
-            <Ionicons name="search-outline" size={18} color="#737373" />
+            <Ionicons name="search-outline" size={18} color="#8a928d" />
             <Text numberOfLines={1} style={styles.searchPillText}>
               {product.name}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.topIconButton} onPress={() => Alert.alert("Share", "Share flow is not connected yet.")}>
-            <Ionicons name="share-social-outline" size={20} color="#171717" />
+            <Ionicons name="share-social-outline" size={20} color="#22312d" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.topIconButton} onPress={() => Alert.alert("More", "More actions are not connected yet.")}>
-            <Ionicons name="ellipsis-horizontal" size={20} color="#171717" />
+            <Ionicons name="ellipsis-horizontal" size={20} color="#22312d" />
           </TouchableOpacity>
         </View>
 
@@ -438,7 +469,7 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
             </ScrollView>
           ) : (
             <View style={[styles.heroFallback, { width: imageWidth, height: imageHeight }]}>
-              <Ionicons name="image-outline" size={40} color="#78716c" />
+              <Ionicons name="image-outline" size={40} color="#86908a" />
             </View>
           )}
 
@@ -495,7 +526,7 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
                 }}
               >
                 <View style={styles.variationLeadIcon}>
-                  <Ionicons name="grid-outline" size={18} color="#334155" />
+                  <Ionicons name="grid-outline" size={18} color="#5a6b64" />
                 </View>
 
                 <ScrollView
@@ -509,7 +540,7 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
                         <Image source={{ uri: variation.imageUrl }} style={styles.variationPreviewImage} resizeMode="cover" />
                       ) : (
                         <View style={styles.variationPreviewFallback}>
-                          <Ionicons name="cube-outline" size={14} color="#64748b" />
+                          <Ionicons name="cube-outline" size={14} color="#75807b" />
                         </View>
                       )}
                     </View>
@@ -630,14 +661,14 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
             style={styles.iconAction}
             onPress={handleOpenShop}
           >
-            <Ionicons name="storefront-outline" size={20} color="#171717" />
+            <Ionicons name="storefront-outline" size={20} color="#22312d" />
           </TouchableOpacity>
 
         <TouchableOpacity style={styles.cartButton} onPress={() => void handleAddToCart()}>
-          <Ionicons name="cart-outline" size={20} color="#171717" />
+          <Ionicons name="cart-outline" size={20} color="#22312d" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.buyButton} onPress={() => Alert.alert("Buy", "Buy flow is not connected yet.")}>
+        <TouchableOpacity style={styles.buyButton} onPress={handleBuyNow}>
           <Ionicons name="flash-outline" size={18} color="#ffffff" />
           <Text style={styles.buyButtonText}>Buy Now</Text>
         </TouchableOpacity>
@@ -689,7 +720,7 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
               <View style={styles.sheetHeader}>
                 <Text style={styles.sheetTitle}>{variationSheetMode === "cart" ? "Choose Variation" : "Variations"}</Text>
                 <TouchableOpacity style={styles.sheetCloseButton} onPress={() => setVariationsVisible(false)}>
-                  <Ionicons name="close" size={20} color="#111827" />
+                  <Ionicons name="close" size={20} color="#22312d" />
                 </TouchableOpacity>
               </View>
 
@@ -721,7 +752,7 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
                         <Image source={{ uri: variation.imageUrl }} style={styles.sheetVariationImage} resizeMode="cover" />
                       ) : (
                         <View style={styles.sheetVariationFallback}>
-                          <Ionicons name="cube-outline" size={22} color="#64748b" />
+                          <Ionicons name="cube-outline" size={22} color="#75807b" />
                         </View>
                       )}
                     </TouchableOpacity>
@@ -739,7 +770,7 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
                 ))}
               </ScrollView>
 
-              {variationSheetMode === "cart" ? (
+              {variationSheetMode === "cart" || variationSheetMode === "buy" ? (
                 <TouchableOpacity
                   style={[
                     styles.sheetAddToCartButton,
@@ -749,11 +780,15 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
                   disabled={variationCount > 0 && !selectedVariationName}
                   onPress={() => {
                     setVariationsVisible(false);
+                    if (variationSheetMode === "buy") {
+                      proceedToCheckout();
+                      return;
+                    }
                     confirmAddToCart();
                   }}
                 >
-                  <Ionicons name="cart-outline" size={18} color="#ffffff" />
-                  <Text style={styles.sheetAddToCartButtonText}>Add to Cart</Text>
+                  <Ionicons name={variationSheetMode === "buy" ? "flash-outline" : "cart-outline"} size={18} color="#ffffff" />
+                  <Text style={styles.sheetAddToCartButtonText}>{variationSheetMode === "buy" ? "Continue to Checkout" : "Add to Cart"}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -775,7 +810,7 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Reviews ({reviewCount})</Text>
               <TouchableOpacity style={styles.sheetCloseButton} onPress={() => setReviewsVisible(false)}>
-                <Ionicons name="close" size={20} color="#111827" />
+                <Ionicons name="close" size={20} color="#22312d" />
               </TouchableOpacity>
             </View>
 
@@ -817,7 +852,7 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
         <View style={styles.confirmOverlay}>
           <View style={styles.confirmCard}>
             <View style={styles.confirmIconWrap}>
-              <Ionicons name="cart-outline" size={22} color="#111827" />
+              <Ionicons name="cart-outline" size={22} color="#22312d" />
             </View>
             <Text style={styles.confirmTitle}>Add to Cart</Text>
             <Text style={styles.confirmText}>Add this product to your cart now?</Text>
@@ -832,7 +867,7 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
                   />
                 ) : (
                   <View style={styles.confirmImageFallback}>
-                    <Ionicons name="cube-outline" size={20} color="#475569" />
+                    <Ionicons name="cube-outline" size={20} color="#66746f" />
                   </View>
                 )}
               </View>
@@ -889,10 +924,10 @@ export default function FuneralProductViewScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fbfcf8",
   },
   content: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fbfcf8",
   },
   topBar: {
     flexDirection: "row",
@@ -914,7 +949,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 38,
     borderRadius: 14,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#eef1ec",
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
@@ -922,7 +957,7 @@ const styles = StyleSheet.create({
   },
   searchPillText: {
     flex: 1,
-    color: "#737373",
+    color: "#8a928d",
     fontSize: 15,
     fontWeight: "600",
   },
@@ -937,12 +972,12 @@ const styles = StyleSheet.create({
   },
   heroImage: {
     borderRadius: 28,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: "#d8ddd7",
   },
   heroFallback: {
     alignSelf: "center",
     borderRadius: 28,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: "#d8ddd7",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -955,7 +990,7 @@ const styles = StyleSheet.create({
   },
   heroStatusBadge: {
     borderRadius: 999,
-    backgroundColor: "#111827",
+    backgroundColor: "#22312d",
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
@@ -977,14 +1012,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   priceText: {
-    color: "#be123c",
+    color: "#6d7f72",
     fontSize: 34,
     lineHeight: 38,
     fontWeight: "900",
     letterSpacing: -1.1,
   },
   priceSubtext: {
-    color: "#111827",
+    color: "#22312d",
     fontSize: 24,
     lineHeight: 30,
     fontWeight: "900",
@@ -997,18 +1032,18 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   ratingText: {
-    color: "#111827",
+    color: "#22312d",
     fontSize: 14,
     fontWeight: "800",
   },
   ratingDivider: {
-    color: "#cbd5e1",
+    color: "#cad5cc",
     fontSize: 14,
     fontWeight: "700",
     marginHorizontal: 2,
   },
   soldText: {
-    color: "#475569",
+    color: "#66746f",
     fontSize: 14,
     fontWeight: "700",
   },
@@ -1020,14 +1055,14 @@ const styles = StyleSheet.create({
   },
   offerPill: {
     borderRadius: 999,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fbfcf8",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#e4ebe4",
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   offerPillText: {
-    color: "#475569",
+    color: "#66746f",
     fontSize: 12,
     fontWeight: "800",
   },
@@ -1038,7 +1073,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   panelTitle: {
-    color: "#111827",
+    color: "#22312d",
     fontSize: 17,
     fontWeight: "900",
     marginBottom: 10,
@@ -1066,7 +1101,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   reviewSummaryScore: {
-    color: "#111827",
+    color: "#22312d",
     fontSize: 26,
     fontWeight: "900",
   },
@@ -1078,15 +1113,15 @@ const styles = StyleSheet.create({
   reviewCard: {
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
+    borderTopColor: "#f1f4ef",
   },
   fullReviewCard: {
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
+    borderTopColor: "#d8ddd7",
   },
   reviewAuthor: {
-    color: "#111827",
+    color: "#22312d",
     fontSize: 15,
     fontWeight: "800",
     marginBottom: 6,
@@ -1104,7 +1139,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   reviewComment: {
-    color: "#111827",
+    color: "#22312d",
     fontSize: 15,
     lineHeight: 22,
     marginBottom: 10,
@@ -1113,10 +1148,10 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 14,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: "#d8ddd7",
   },
   reviewComposerHint: {
-    color: "#64748b",
+    color: "#75807b",
     fontSize: 13,
     lineHeight: 19,
     marginBottom: 10,
@@ -1130,7 +1165,7 @@ const styles = StyleSheet.create({
   },
   ratingPickerIcon: {
     fontSize: 34,
-    color: "#cbd5e1",
+    color: "#cad5cc",
   },
   ratingPickerIconActive: {
     color: "#f59e0b",
@@ -1139,9 +1174,9 @@ const styles = StyleSheet.create({
     minHeight: 112,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    backgroundColor: "#f8fafc",
-    color: "#111827",
+    borderColor: "#e4ebe4",
+    backgroundColor: "#fbfcf8",
+    color: "#22312d",
     fontSize: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -1150,7 +1185,7 @@ const styles = StyleSheet.create({
   submitButton: {
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: "#111827",
+    backgroundColor: "#22312d",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
@@ -1168,7 +1203,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   variationPreviewTitle: {
-    color: "#111827",
+    color: "#22312d",
     fontSize: 15,
     fontWeight: "900",
     marginBottom: 10,
@@ -1177,9 +1212,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 18,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fbfcf8",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#e4ebe4",
     paddingHorizontal: 10,
     paddingVertical: 10,
   },
@@ -1197,7 +1232,7 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 10,
     overflow: "hidden",
-    backgroundColor: "#e2e8f0",
+    backgroundColor: "#e4ebe4",
   },
   variationPreviewImage: {
     width: "100%",
@@ -1207,11 +1242,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#f1f4ef",
   },
   variationPreviewText: {
     flex: 1,
-    color: "#64748b",
+    color: "#75807b",
     fontSize: 13,
     fontWeight: "700",
     marginLeft: 8,
@@ -1222,26 +1257,26 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     borderRadius: 18,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fbfcf8",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#e4ebe4",
     padding: 14,
   },
   infoLabel: {
-    color: "#64748b",
+    color: "#75807b",
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase",
     marginBottom: 6,
   },
   infoValue: {
-    color: "#111827",
+    color: "#22312d",
     fontSize: 14,
     lineHeight: 20,
     fontWeight: "800",
   },
   descriptionText: {
-    color: "#475569",
+    color: "#66746f",
     fontSize: 14,
     lineHeight: 22,
   },
@@ -1255,7 +1290,7 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: "#ffffff",
     borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
+    borderTopColor: "#d8ddd7",
     paddingHorizontal: 12,
     paddingTop: 12,
   },
@@ -1263,7 +1298,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 16,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#eef1ec",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1271,9 +1306,9 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 16,
-    backgroundColor: "#fff7ed",
+    backgroundColor: "#f2ede5",
     borderWidth: 1,
-    borderColor: "#fdba74",
+    borderColor: "#d4c4ae",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1281,7 +1316,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 50,
     borderRadius: 16,
-    backgroundColor: "#111827",
+    backgroundColor: "#22312d",
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
@@ -1366,7 +1401,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 5,
     borderRadius: 999,
-    backgroundColor: "#cbd5e1",
+    backgroundColor: "#cad5cc",
     marginBottom: 14,
   },
   sheetHeader: {
@@ -1376,7 +1411,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sheetTitle: {
-    color: "#111827",
+    color: "#22312d",
     fontSize: 20,
     fontWeight: "900",
   },
@@ -1384,7 +1419,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#eef1ec",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1393,9 +1428,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     borderRadius: 18,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fbfcf8",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#e4ebe4",
     padding: 12,
     marginBottom: 10,
   },
@@ -1408,14 +1443,14 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#e2e8f0",
+    backgroundColor: "#e4ebe4",
   },
   sheetVariationThumbLarge: {
     width: 72,
     height: 72,
     borderRadius: 18,
     overflow: "hidden",
-    backgroundColor: "#e2e8f0",
+    backgroundColor: "#e4ebe4",
   },
   sheetVariationImage: {
     width: "100%",
@@ -1425,10 +1460,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#f1f4ef",
   },
   sheetVariationName: {
-    color: "#111827",
+    color: "#22312d",
     fontSize: 15,
     fontWeight: "800",
   },
@@ -1437,14 +1472,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   sheetVariationHint: {
-    color: "#64748b",
+    color: "#75807b",
     fontSize: 12,
     lineHeight: 18,
   },
   sheetAddToCartButton: {
     minHeight: 50,
     borderRadius: 16,
-    backgroundColor: "#111827",
+    backgroundColor: "#22312d",
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
@@ -1473,24 +1508,24 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 20,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#d8ddd7",
   },
   confirmIconWrap: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#fff7ed",
+    backgroundColor: "#f2ede5",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
   },
   confirmTitle: {
-    color: "#111827",
+    color: "#22312d",
     fontSize: 22,
     fontWeight: "900",
   },
   confirmText: {
-    color: "#64748b",
+    color: "#75807b",
     fontSize: 14,
     lineHeight: 21,
     marginTop: 6,
@@ -1501,16 +1536,16 @@ const styles = StyleSheet.create({
     marginTop: 18,
     padding: 12,
     borderRadius: 18,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fbfcf8",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#e4ebe4",
   },
   confirmImageWrap: {
     width: 74,
     height: 74,
     borderRadius: 18,
     overflow: "hidden",
-    backgroundColor: "#e2e8f0",
+    backgroundColor: "#e4ebe4",
   },
   confirmImage: {
     width: "100%",
@@ -1520,25 +1555,25 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#f1f4ef",
   },
   confirmBody: {
     flex: 1,
     justifyContent: "center",
   },
   confirmProductName: {
-    color: "#111827",
+    color: "#22312d",
     fontSize: 15,
     fontWeight: "800",
   },
   confirmVariation: {
-    color: "#64748b",
+    color: "#75807b",
     fontSize: 12,
     fontWeight: "700",
     marginTop: 4,
   },
   confirmPrice: {
-    color: "#be123c",
+    color: "#6d7f72",
     fontSize: 18,
     fontWeight: "900",
     marginTop: 6,
@@ -1552,12 +1587,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#eef1ec",
     alignItems: "center",
     justifyContent: "center",
   },
   confirmSecondaryText: {
-    color: "#111827",
+    color: "#22312d",
     fontSize: 14,
     fontWeight: "800",
   },
@@ -1565,7 +1600,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: "#111827",
+    backgroundColor: "#22312d",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1595,14 +1630,14 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   emptyTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 22,
     fontWeight: "900",
   },
   primaryButton: {
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: "#171717",
+    backgroundColor: "#22312d",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 18,

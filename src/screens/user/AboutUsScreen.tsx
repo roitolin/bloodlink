@@ -5,11 +5,9 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Image,
   Modal,
   Pressable,
   TouchableOpacity,
-  type ImageSourcePropType,
 } from "react-native";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -24,7 +22,6 @@ type Member = {
   name: string;
   role: string;
   quote: string;
-  photo: ImageSourcePropType;
 };
 
 const highlights = [
@@ -62,46 +59,40 @@ const sections: AboutSection[] = [
 
 const systemMembers: Member[] = [
   {
-    name: "Roi Veinze A. Tolin",
+    name: "Member 1",
     role: "Team Member",
     quote:
       "Your blood is a small gift with a monumental impact. Together, we can build a stronger, healthier world through compassion. Donate today.",
-    photo: require("../../../assets/member-photos/roi-veinze-tolin.png"),
   },
   {
-    name: "Mary Sheen Punay",
+    name: "Member 2",
     role: "Team Member",
     quote:
       "Every donor gives more than blood. They give hope, time, and another chance for someone to keep living.",
-    photo: require("../../../assets/member-photos/mary-sheen-punay.png"),
   },
   {
-    name: "Daisy Derial",
+    name: "Member 3",
     role: "Team Member",
     quote:
       "Compassion becomes powerful when it moves quickly. LifeCycle helps communities respond when every minute matters.",
-    photo: require("../../../assets/member-photos/daisy-derial.jpg"),
   },
   {
-    name: "Ezra Baguhin",
+    name: "Member 4",
     role: "Team Member",
     quote:
       "One simple act of donation can connect strangers, strengthen families, and save lives in the moments that count most.",
-    photo: require("../../../assets/member-photos/ezra-baguhin.png"),
   },
   {
-    name: "Samuel Monares",
+    name: "Member 5",
     role: "Team Member",
     quote:
       "When people come together for a shared purpose, urgent blood needs turn into stories of survival and community.",
-    photo: require("../../../assets/member-photos/samuel-monares-jr.png"),
   },
   {
-    name: "Cyrus Dan Coyoca",
+    name: "Member 6",
     role: "Team Member",
     quote:
       "Technology should serve humanity. LifeCycle is built to make help visible, reachable, and immediate for those in need.",
-    photo: require("../../../assets/member-photos/cyrus-coyoca.jpg"),
   },
 ];
 
@@ -161,7 +152,9 @@ export default function AboutUsScreen() {
                 onPress={() => setActiveMember(member)}
               >
                 <View style={styles.memberCard}>
-                  <Image source={member.photo} style={styles.memberPhoto} resizeMode="cover" />
+                  <View style={styles.memberPhoto} accessibilityLabel={`${member.name} profile icon`}>
+                    <Ionicons name="person" size={34} color="#9a1d26" />
+                  </View>
                   <Text style={styles.memberName}>{member.name}</Text>
                   <Text style={styles.memberRole}>{member.role}</Text>
                 </View>
@@ -183,7 +176,9 @@ export default function AboutUsScreen() {
                 <Text style={styles.memberModalRole}>{activeMember.role}</Text>
                 <View style={styles.memberModalBody}>
                   <View style={styles.memberModalPhotoWrap}>
-                    <Image source={activeMember.photo} style={styles.memberModalPhoto} resizeMode="contain" />
+                    <View style={styles.memberModalPhoto} accessibilityLabel={`${activeMember.name} profile icon`}>
+                      <Ionicons name="person-circle" size={148} color="#9a1d26" />
+                    </View>
                   </View>
                   <Text style={styles.memberModalQuote}>&quot;{activeMember.quote}&quot;</Text>
                 </View>
@@ -377,6 +372,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#ffffff",
     backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
   },
   memberName: {
     textAlign: "center",
@@ -457,6 +454,8 @@ const styles = StyleSheet.create({
     height: 260,
     borderRadius: 12,
     backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
   },
   memberModalQuote: {
     color: "#1f2937",

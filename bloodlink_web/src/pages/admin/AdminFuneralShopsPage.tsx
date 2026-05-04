@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { collection, doc, getDocs, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
+import { Link } from 'react-router-dom'
+import { collection, doc, getDocs, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 
 type ShopItem = {
   id: string
+  role?: string
   email?: string
   fullName?: string
   funeralShopStatus?: string
   funeralShopRejectionReason?: string | null
+  funeralProducts?: Array<{ id?: string; name?: string; active?: boolean; stock?: number }>
   funeralShopInfo?: {
     shopName?: string
     shopAddress?: string
@@ -34,20 +37,30 @@ function AdminFuneralShopsPage() {
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState('')
   const [items, setItems] = useState<ShopItem[]>([])
-  const [statusFilter, setStatusFilter] = useState('pending')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [queryText, setQueryText] = useState('')
+  const [error, setError] = useState('')
   const { openConfirm, confirmDialog } = useConfirmDialog()
 
   const load = async () => {
     setLoading(true)
+    setError('')
     try {
-      const funeralStatusQuery = query(
-        collection(db, 'users'),
-        where('funeralShopStatus', 'in', ['pending', 'verified', 'rejected']),
-      )
-      const snapshot = await getDocs(funeralStatusQuery)
-      const list = snapshot.docs.map((itemDoc) => ({ id: itemDoc.id, ...(itemDoc.data() as Omit<ShopItem, 'id'>) }))
+      const snapshot = await getDocs(collection(db, 'users'))
+      const list = snapshot.docs
+        .map((itemDoc) => ({ id: itemDoc.id, ...(itemDoc.data() as Omit<ShopItem, 'id'>) }))
+        .filter((item) => {
+          const status = normalize(item.funeralShopStatus)
+          return (
+            ['pending', 'verified', 'rejected'].includes(status) ||
+            Boolean(item.funeralShopInfo?.shopName) ||
+            Boolean(item.funeralBusinessInfo?.businessName) ||
+            Boolean(item.funeralProducts?.length)
+          )
+        })
       setItems(list)
+    } catch {
+      setError('Unable to load funeral shop records right now.')
     } finally {
       setLoading(false)
     }
@@ -102,6 +115,39 @@ function AdminFuneralShopsPage() {
     })
   }
 
+  const deleteShop = async (itemId: string) => {
+    const item = items.find((entry) => entry.id === itemId)
+    openConfirm({
+      title: 'Delete this funeral shop?',
+      message: `This will remove the shop record for ${item?.funeralShopInfo?.shopName || item?.email || 'this shop'}.`,
+      details: [
+        'Shop profile fields will be cleared.',
+        'Business information will be cleared.',
+        'All embedded funeral items will be removed.',
+        'The user account itself will remain.',
+      ],
+      tone: 'danger',
+      confirmLabel: 'Delete Shop',
+      onConfirm: async () => {
+        setSavingId(itemId)
+        try {
+          await updateDoc(doc(db, 'users', itemId), {
+            funeralShopStatus: 'none',
+            funeralShopRejectionReason: null,
+            funeralShopSubmittedAt: null,
+            funeralShopInfo: null,
+            funeralBusinessInfo: null,
+            funeralProducts: [],
+            updatedAt: serverTimestamp(),
+          })
+          await load()
+        } finally {
+          setSavingId('')
+        }
+      },
+    })
+  }
+
   return (
     <>
       <section className="panel">
@@ -130,6 +176,7 @@ function AdminFuneralShopsPage() {
         </div>
 
         {loading ? <p className="panel-sub">Loading funeral shops...</p> : null}
+        {error ? <p className="auth-message auth-message-error">{error}</p> : null}
         {!loading && filtered.length === 0 ? <p className="panel-sub">No funeral shops found.</p> : null}
 
         <div className="table-wrap">
@@ -159,6 +206,7 @@ function AdminFuneralShopsPage() {
                     <td>
                       <span className={`status-pill ${status}`}>{status}</span>
                       {item.funeralShopRejectionReason ? <div>{item.funeralShopRejectionReason}</div> : null}
+                      {item.funeralProducts?.length ? <div>{item.funeralProducts.length} item{item.funeralProducts.length === 1 ? '' : 's'}</div> : null}
                     </td>
                     <td>
                       <div className="request-actions">
@@ -172,6 +220,12 @@ function AdminFuneralShopsPage() {
                             View BIR
                           </a>
                         ) : null}
+                        <Link to={`/admin/funeral-items?shop=${encodeURIComponent(item.id)}`} className="ghost-btn btn-link table-action">
+                          Items
+                        </Link>
+                        <button type="button" className="ghost-btn table-action" disabled={busy} onClick={() => void deleteShop(item.id)}>
+                          Delete Shop
+                        </button>
                         {status === 'pending' ? (
                           <>
                             <button type="button" className="ghost-btn table-action" disabled={busy} onClick={() => void setShopStatus(item.id, 'verified')}>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth'
 import { doc, setDoc } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
@@ -17,6 +17,7 @@ function getRegisterErrorMessage(errorCode: string): string {
 
 function RegisterPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -34,6 +35,12 @@ function RegisterPage() {
     }
     navigate('/')
   }
+
+  const redirectAfterRegister = (() => {
+    const search = new URLSearchParams(location.search)
+    const next = search.get('next') || ''
+    return next.startsWith('/') ? next : ''
+  })()
 
   const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -69,7 +76,10 @@ function RegisterPage() {
       await sendEmailVerification(user)
       await signOut(auth)
 
-      navigate('/login?registered=1')
+      const target = redirectAfterRegister
+        ? `/login?registered=1&next=${encodeURIComponent(redirectAfterRegister)}`
+        : '/login?registered=1'
+      navigate(target)
     } catch (caughtError) {
       const errorCode =
         typeof caughtError === 'object' && caughtError !== null && 'code' in caughtError
@@ -199,7 +209,7 @@ function RegisterPage() {
           </form>
 
           <p className="auth-switch">
-            Already have an account? <Link to="/login">Login</Link>
+            Already have an account? <Link to={redirectAfterRegister ? `/login?next=${encodeURIComponent(redirectAfterRegister)}` : '/login'}>Login</Link>
           </p>
         </section>
       </div>

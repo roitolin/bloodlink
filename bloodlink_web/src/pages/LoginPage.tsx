@@ -85,6 +85,7 @@ function LoginPage() {
     const next = search.get('next') || ''
     return next.startsWith('/') ? next : ''
   }, [location.search])
+  const registerTarget = redirectAfterLogin ? `/register?next=${encodeURIComponent(redirectAfterLogin)}` : '/register'
 
   const goBack = () => {
     if (window.history.length > 1) {
@@ -269,7 +270,7 @@ function LoginPage() {
           </form>
 
           <p className="auth-switch">
-            No account yet? <Link to="/register">Register</Link>
+            No account yet? <Link to={registerTarget}>Register</Link>
           </p>
 
           <section className="support-wrap" aria-label="Login support">

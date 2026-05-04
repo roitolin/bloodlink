@@ -116,14 +116,14 @@ function AdminLayout() {
         : userRole === 'funeral_admin'
           ? 'Shop Console'
           : 'Admin Console'
-  const homePath = userRole === 'blood_admin' ? '/admin/donors' : userRole === 'funeral_admin' ? '/admin/funeral-shops' : '/admin/dashboard'
+  const homePath = userRole === 'blood_admin' ? '/admin/donors' : '/admin/dashboard'
   const homeLabel =
     userRole === 'super_admin'
       ? 'Super Admin'
       : userRole === 'blood_admin'
         ? 'Blood Admin'
         : userRole === 'funeral_admin'
-          ? 'Shops'
+          ? 'Dashboard'
           : 'Dashboard'
 
   useEffect(() => {
@@ -258,6 +258,17 @@ function AdminLayout() {
               </svg>
             </span>
             <span className="sidebar-label">Funeral Shops</span>
+          </NavLink> : null}
+          {isFuneralAdmin ? <NavLink to="/admin/funeral-items" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
+            <span className="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M6 7H18" strokeWidth="1.8" strokeLinecap="round" />
+                <path d="M6 12H18" strokeWidth="1.8" strokeLinecap="round" />
+                <path d="M6 17H14" strokeWidth="1.8" strokeLinecap="round" />
+                <path d="M7 4H17V20H7V4Z" strokeWidth="1.8" />
+              </svg>
+            </span>
+            <span className="sidebar-label">Items</span>
           </NavLink> : null}
           <NavLink to="/admin/users" className={({ isActive }) => `user-nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-icon" aria-hidden="true">

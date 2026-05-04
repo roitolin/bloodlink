@@ -55,7 +55,10 @@ const getStatusMeta = (status: string) => {
   if (normalized === "declined_by_shop") {
     return { label: "Declined", background: "#fde8e8", text: "#991b1b" };
   }
-  return { label: "Waiting", background: "#fef3c7", text: "#92400e" };
+  if (normalized === "cancelled_by_requester") {
+    return { label: "Cancelled", background: "#eef1ec", text: "#4c5b57" };
+  }
+  return { label: "Waiting", background: "#fef3c7", text: "#86654a" };
 };
 
 const formatTimestamp = (value: any) => {
@@ -206,18 +209,18 @@ export default function FuneralServiceRequestsInboxScreen() {
         </View>
 
         <TouchableOpacity style={styles.refreshButton} onPress={() => void loadRequests()}>
-          <Ionicons name="refresh-outline" size={16} color="#171717" />
+          <Ionicons name="refresh-outline" size={16} color="#22312d" />
           <Text style={styles.refreshButtonText}>Refresh Requests</Text>
         </TouchableOpacity>
 
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color="#92400e" />
+            <ActivityIndicator size="large" color="#86654a" />
             <Text style={styles.loadingText}>Loading service requests...</Text>
           </View>
         ) : requests.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Ionicons name="mail-open-outline" size={28} color="#8b8578" />
+            <Ionicons name="mail-open-outline" size={28} color="#8b938c" />
             <Text style={styles.emptyTitle}>No service requests yet</Text>
             <Text style={styles.emptyText}>When a family sends a request, it will appear here for review.</Text>
           </View>
@@ -293,11 +296,11 @@ export default function FuneralServiceRequestsInboxScreen() {
 
                 <View style={styles.contactActionRow}>
                   <TouchableOpacity style={styles.contactActionButton} onPress={() => void openPhoneLink("call", selectedRequest.contactNumber)}>
-                    <Ionicons name="call-outline" size={16} color="#171717" />
+                    <Ionicons name="call-outline" size={16} color="#22312d" />
                     <Text style={styles.contactActionButtonText}>Call</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.contactActionButton} onPress={() => void openPhoneLink("sms", selectedRequest.contactNumber)}>
-                    <Ionicons name="chatbubble-ellipses-outline" size={16} color="#171717" />
+                    <Ionicons name="chatbubble-ellipses-outline" size={16} color="#22312d" />
                     <Text style={styles.contactActionButtonText}>SMS</Text>
                   </TouchableOpacity>
                 </View>
@@ -343,7 +346,7 @@ export default function FuneralServiceRequestsInboxScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f8f7f3",
+    backgroundColor: "#eef1ec",
   },
   content: {
     padding: 18,
@@ -353,26 +356,26 @@ const styles = StyleSheet.create({
   headerCard: {
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "#ece7df",
-    backgroundColor: "#fffaf5",
+    borderColor: "#d9d6cd",
+    backgroundColor: "#f8f6f2",
     padding: 18,
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 12,
   },
   headerEyebrow: {
-    color: "#a16207",
+    color: "#8b7255",
     fontSize: 12,
     fontWeight: "800",
   },
   headerTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 24,
     fontWeight: "900",
     marginTop: 4,
   },
   headerSubtitle: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
     marginTop: 8,
@@ -381,14 +384,14 @@ const styles = StyleSheet.create({
   pendingPill: {
     minWidth: 82,
     borderRadius: 20,
-    backgroundColor: "#171717",
+    backgroundColor: "#22312d",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
   pendingPillLabel: {
-    color: "#d6d3d1",
+    color: "#d2d7d1",
     fontSize: 11,
     fontWeight: "700",
   },
@@ -402,14 +405,14 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
   refreshButtonText: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 13,
     fontWeight: "900",
   },
@@ -419,7 +422,7 @@ const styles = StyleSheet.create({
     paddingVertical: 42,
   },
   loadingText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     marginTop: 10,
   },
@@ -427,19 +430,19 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     alignItems: "center",
     paddingHorizontal: 22,
     paddingVertical: 30,
   },
   emptyTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 18,
     fontWeight: "900",
     marginTop: 12,
   },
   emptyText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
@@ -449,7 +452,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     padding: 16,
   },
   requestTopRow: {
@@ -462,18 +465,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   requestName: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 17,
     fontWeight: "900",
   },
   requestProduct: {
-    color: "#a16207",
+    color: "#8b7255",
     fontSize: 13,
     fontWeight: "800",
     marginTop: 4,
   },
   requestMeta: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     marginTop: 8,
   },
@@ -498,18 +501,18 @@ const styles = StyleSheet.create({
     maxWidth: 480,
     maxHeight: "86%",
     borderRadius: 24,
-    backgroundColor: "#fffaf5",
+    backgroundColor: "#f8f6f2",
     borderWidth: 1,
-    borderColor: "#ece7df",
+    borderColor: "#d9d6cd",
     padding: 18,
   },
   modalTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 22,
     fontWeight: "900",
   },
   modalSubtitle: {
-    color: "#a16207",
+    color: "#8b7255",
     fontSize: 13,
     fontWeight: "800",
     marginTop: 4,
@@ -528,14 +531,14 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   detailLabel: {
-    color: "#44403c",
+    color: "#53615d",
     fontSize: 12,
     fontWeight: "900",
     marginTop: 10,
     marginBottom: 4,
   },
   detailValue: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 14,
     lineHeight: 20,
   },
@@ -553,22 +556,22 @@ const styles = StyleSheet.create({
     minHeight: 42,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#ece7df",
-    backgroundColor: "#fffdf9",
+    borderColor: "#d9d6cd",
+    backgroundColor: "#fbfaf7",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
   },
   contactActionButtonText: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 13,
     fontWeight: "900",
   },
   acceptButton: {
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: "#171717",
+    backgroundColor: "#22312d",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -597,16 +600,16 @@ const styles = StyleSheet.create({
   readonlyStatusCard: {
     marginTop: 18,
     borderRadius: 16,
-    backgroundColor: "#f5f5f4",
+    backgroundColor: "#ece9e3",
     padding: 14,
   },
   readonlyStatusTitle: {
-    color: "#171717",
+    color: "#22312d",
     fontSize: 14,
     fontWeight: "900",
   },
   readonlyStatusText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 13,
     lineHeight: 19,
     marginTop: 4,
@@ -614,13 +617,13 @@ const styles = StyleSheet.create({
   closeButton: {
     minHeight: 46,
     borderRadius: 16,
-    backgroundColor: "#f5f5f4",
+    backgroundColor: "#ece9e3",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 14,
   },
   closeButtonText: {
-    color: "#57534e",
+    color: "#62706b",
     fontSize: 14,
     fontWeight: "900",
   },

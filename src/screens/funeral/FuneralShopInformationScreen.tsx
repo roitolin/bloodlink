@@ -2,6 +2,11 @@ import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Card, Button as PaperButton } from "react-native-paper";
+import { sanitizePlainText } from "@/utils/inputSecurity";
+
+const SHOP_NAME_MAX = 120;
+const SHOP_ADDRESS_MAX = 220;
+const SHOP_PHONE_MAX = 24;
 
 export default function FuneralShopInformationScreen({ navigation, route }: any) {
   const existingDraft = route.params?.draft || {};
@@ -10,7 +15,11 @@ export default function FuneralShopInformationScreen({ navigation, route }: any)
   const [shopPhoneNumber, setShopPhoneNumber] = useState(existingDraft.shopPhoneNumber || "");
 
   const handleNext = () => {
-    if (!shopName.trim() || !shopAddress.trim() || !shopPhoneNumber.trim()) {
+    const safeShopName = sanitizePlainText(shopName, SHOP_NAME_MAX);
+    const safeShopAddress = sanitizePlainText(shopAddress, SHOP_ADDRESS_MAX);
+    const safeShopPhoneNumber = sanitizePlainText(shopPhoneNumber, SHOP_PHONE_MAX);
+
+    if (!safeShopName || !safeShopAddress || !safeShopPhoneNumber) {
       Alert.alert("Missing fields", "Please complete Shop name, Shop address, and phone number.");
       return;
     }
@@ -18,9 +27,9 @@ export default function FuneralShopInformationScreen({ navigation, route }: any)
     navigation.navigate("BusinessInformation", {
       draft: {
         ...existingDraft,
-        shopName: shopName.trim(),
-        shopAddress: shopAddress.trim(),
-        shopPhoneNumber: shopPhoneNumber.trim(),
+        shopName: safeShopName,
+        shopAddress: safeShopAddress,
+        shopPhoneNumber: safeShopPhoneNumber,
       },
     });
   };
@@ -43,7 +52,7 @@ export default function FuneralShopInformationScreen({ navigation, route }: any)
             <Text style={styles.label}>Phone Number *</Text>
             <TextInput style={styles.input} value={shopPhoneNumber} onChangeText={setShopPhoneNumber} placeholder="Enter phone number" keyboardType="phone-pad" />
 
-            <PaperButton mode="contained" buttonColor="#334155" onPress={handleNext} style={styles.primaryButton}>
+            <PaperButton mode="contained" buttonColor="#5a6b64" onPress={handleNext} style={styles.primaryButton}>
               Next
             </PaperButton>
           </Card.Content>
@@ -56,7 +65,7 @@ export default function FuneralShopInformationScreen({ navigation, route }: any)
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#eef1ec",
   },
   content: {
     padding: 16,
@@ -65,7 +74,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   kicker: {
-    color: "#64748b",
+    color: "#75807b",
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase",
@@ -79,13 +88,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subtitle: {
-    color: "#475569",
+    color: "#66746f",
     fontSize: 14,
     lineHeight: 21,
     marginBottom: 18,
   },
   label: {
-    color: "#374151",
+    color: "#4c5b57",
     fontSize: 14,
     fontWeight: "700",
     marginTop: 12,
@@ -93,11 +102,11 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: "#cbd2cb",
     borderRadius: 10,
     padding: 12,
     backgroundColor: "#ffffff",
-    color: "#111827",
+    color: "#22312d",
     fontSize: 15,
   },
   multilineInput: {

@@ -31,6 +31,6 @@ export const appServices: Record<
     accent: "#334155",
     softAccent: "#f8fafc",
     border: "#cbd5e1",
-    icon: "flower",
+    icon: "ribbon",
   },
 };

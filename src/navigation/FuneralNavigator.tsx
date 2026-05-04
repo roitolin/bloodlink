@@ -15,6 +15,18 @@ import FuneralProfileStackNavigator from "./FuneralProfileStackNavigator";
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+const funeralHeaderOptions = {
+  headerStyle: {
+    backgroundColor: "#f8f6f2",
+  },
+  headerTintColor: "#22312d",
+  headerShadowVisible: false,
+  headerTitleStyle: {
+    color: "#22312d",
+    fontWeight: "700" as const,
+  },
+};
+
 function TabBarIcon({ name, color, size }: any) {
   return (
     <View>
@@ -57,7 +69,7 @@ function FuneralTabs() {
           tabBarStyle: {
             backgroundColor: "#ffffff",
             borderTopWidth: 1,
-            borderTopColor: "#ece7df",
+            borderTopColor: "#d9d6cd",
             elevation: 0,
             shadowOpacity: 0,
           },
@@ -73,9 +85,10 @@ function FuneralTabs() {
             />
           ),
           tabBarHideOnKeyboard: true,
-          tabBarActiveTintColor: "#334155",
-          tabBarInactiveTintColor: "#667085",
+          tabBarActiveTintColor: "#5a6b64",
+          tabBarInactiveTintColor: "#8a928d",
           headerShown: route.name !== "Home",
+          ...funeralHeaderOptions,
         };
       }}
     >
@@ -104,7 +117,12 @@ function FuneralTabs() {
 
 export default function FuneralNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        ...funeralHeaderOptions,
+      }}
+    >
       <Stack.Screen name="FuneralTabs" component={FuneralTabs} />
       <Stack.Screen name="ProductView" component={FuneralProductViewScreen} />
       <Stack.Screen name="ShopProducts" component={FuneralShopProductsScreen} />

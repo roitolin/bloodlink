@@ -26,10 +26,10 @@ export default function FuneralSectionScreen({
         <View style={styles.card}>
           <View style={styles.topRow}>
             <View style={styles.badgeCircle}>
-              <Ionicons name={icon} size={24} color="#334155" />
+              <Ionicons name={icon} size={24} color="#5a6b64" />
             </View>
             <TouchableOpacity style={styles.hubButton} onPress={() => navigation.getParent()?.navigate("ServiceHub")}>
-              <Ionicons name="apps-outline" size={16} color="#334155" />
+              <Ionicons name="apps-outline" size={16} color="#5a6b64" />
               <Text style={styles.hubButtonText}>Service Hub</Text>
             </TouchableOpacity>
           </View>
@@ -50,7 +50,7 @@ export default function FuneralSectionScreen({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#e2e8f0",
+    backgroundColor: "#e4ebe4",
   },
   glowTop: {
     position: "absolute",
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     width: 260,
     height: 260,
     borderRadius: 999,
-    backgroundColor: "#cbd5e1",
+    backgroundColor: "#cad5cc",
   },
   glowBottom: {
     position: "absolute",
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     width: 280,
     height: 280,
     borderRadius: 999,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fbfcf8",
   },
   content: {
     flexGrow: 1,
@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 24,
     borderWidth: 1,
-    borderColor: "#cbd5e1",
-    shadowColor: "#334155",
+    borderColor: "#cad5cc",
+    shadowColor: "#5a6b64",
     shadowOpacity: 0.12,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 10 },
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#f1f4ef",
   },
   hubButton: {
     flexDirection: "row",
@@ -108,15 +108,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#cbd5e1",
-    backgroundColor: "#f8fafc",
+    borderColor: "#cad5cc",
+    backgroundColor: "#fbfcf8",
   },
   hubButtonText: {
-    color: "#334155",
+    color: "#5a6b64",
     fontWeight: "800",
   },
   kicker: {
-    color: "#475569",
+    color: "#66746f",
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 1.2,
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   body: {
-    color: "#475569",
+    color: "#66746f",
     fontSize: 15,
     lineHeight: 23,
     marginBottom: 18,
@@ -141,10 +141,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    backgroundColor: "#e2e8f0",
+    backgroundColor: "#e4ebe4",
   },
   statusText: {
-    color: "#334155",
+    color: "#5a6b64",
     fontSize: 13,
     fontWeight: "800",
     textTransform: "uppercase",

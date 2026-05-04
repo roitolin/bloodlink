@@ -7,27 +7,23 @@ function ServiceChoicePage() {
         <span className="service-choice-kicker">LifeCycle Web</span>
         <h1>Choose a service</h1>
         <p>
-          Select where you want to continue. You can open the blood web section or the funeral web section directly.
+          You are inside the LifeCycle hub. Choose which web experience you want to open next.
         </p>
 
         <div className="service-choice-grid">
-          <article className="service-choice-option blood-option">
-            <div className="service-choice-icon" aria-hidden="true">🩸</div>
+          <Link to="/blood" className="service-choice-option service-choice-link-card blood-option" aria-label="Open Blood Web">
+            <div className="service-choice-icon" aria-hidden="true">BL</div>
             <h2>Blood</h2>
-            <p>Open the blood donation web experience for requests, donors, and updates.</p>
-            <Link to="/blood" className="solid-btn btn-link">
-              Open Blood Web
-            </Link>
-          </article>
+            <p>Continue to the blood donation web experience for requests, donors, and updates.</p>
+            <span className="solid-btn btn-link service-choice-cta">Enter Blood Web</span>
+          </Link>
 
-          <article className="service-choice-option funeral-option">
-            <div className="service-choice-icon" aria-hidden="true">⚘</div>
+          <Link to="/funeral" className="service-choice-option service-choice-link-card funeral-option" aria-label="Open Funeral Web">
+            <div className="service-choice-icon" aria-hidden="true">FN</div>
             <h2>Funeral</h2>
-            <p>Open the funeral web section for funeral shop access and service information.</p>
-            <Link to="/funeral" className="ghost-btn btn-link">
-              Open Funeral Web
-            </Link>
-          </article>
+            <p>Continue to the funeral web experience for marketplace browsing, shop access, and service information.</p>
+            <span className="service-choice-cta service-choice-cta-funeral">Enter Funeral Web</span>
+          </Link>
         </div>
       </div>
     </div>
